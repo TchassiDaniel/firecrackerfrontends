@@ -1,0 +1,8 @@
+{
+  "/api/users/*": "/users/$1",
+  "/api/vms/*": "/vms/$1",
+  "/api/system-images/*": "/system-images/$1",
+  "/api/admin/vms": "/vms",
+  "/api/admin/vms/:id": "/vms/:id",
+  "/api/admin/vms/:id/logs": "/vm-logs?vm_id=:id"
+}

@@ -8,11 +8,13 @@ import Navbar from '@/components/layouts/navbar';
 import Footer from '@/components/layouts/footer';
 import { AuthProvider } from '@/hooks/useAuth';
 
-const inter = Inter({ subsets: ['latin'] });
+const inter = Inter({ 
+  subsets: ['latin'],
+});
 
 export const metadata: Metadata = {
-  title: 'IAASFirecracker',
-  description: 'Modern virtual machine management platform powered by Firecracker',
+  title: 'Firecracker Admin Dashboard',
+  description: 'Admin dashboard for Firecracker VM management',
 };
 
 export default function RootLayout({
@@ -22,13 +24,15 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className="h-full">
-      <body className={`${inter.className} min-h-screen flex flex-col`}>
+      <body className={`${inter.className} min-h-screen bg-gray-50 text-gray-900`}>
         <AuthProvider>
-          <Navbar />
-          <main className="flex-grow">
-            {children}
-          </main>
-          <Footer />
+          <div className="min-h-screen flex flex-col">
+            <Navbar />
+            <main className="flex-grow bg-gray-50">
+              {children}
+            </main>
+            <Footer />
+          </div>
           <Toaster />
         </AuthProvider>
       </body>

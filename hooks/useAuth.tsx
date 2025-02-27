@@ -2,44 +2,39 @@
 
 import { createContext, useContext, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { toast } from '@/components/ui/use-toast';
+import { getServiceClient } from '@/lib/api/client';
+import { useToast } from "@/components/ui/use-toast";
 
-interface User {
+export interface User {
   id: string;
-  name: string;
   email: string;
+  name: string;
+  role: 'admin' | 'user';
 }
 
 interface AuthContextType {
   user: User | null;
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
-  register: (name: string, email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
-  forgotPassword: (email: string) => Promise<void>;
-  resetPassword: (token: string, password: string) => Promise<void>;
-  verifyEmail: (id: string, hash: string) => Promise<void>;
+  checkAuth: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
-export function AuthProvider({ children }: { children: React.ReactNode }) {
+const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
-
-  useEffect(() => {
-    checkAuth();
-  }, []);
+  const { toast } = useToast();
 
   const checkAuth = async () => {
     try {
-      const response = await fetch('/api/auth/user');
-      if (response.ok) {
-        const userData = await response.json();
-        setUser(userData);
-      }
+      const authClient = getServiceClient('AUTH_SERVICE');
+      const response = await authClient.get('/user');
+      setUser(response.data);
     } catch (error) {
+      setUser(null);
       console.error('Auth check failed:', error);
     } finally {
       setLoading(false);
@@ -48,162 +43,50 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const login = async (email: string, password: string) => {
     try {
-      const response = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message);
-      }
-
-      const userData = await response.json();
-      setUser(userData);
+      const authClient = getServiceClient('AUTH_SERVICE');
+      const response = await authClient.post('/login', { email, password });
+      setUser(response.data);
+      
+      // Toujours rediriger vers le dashboard après la connexion
       router.push('/dashboard');
+
       toast({
-        title: "Success",
-        description: "You have been logged in successfully.",
+        title: 'Success',
+        description: 'Successfully logged in',
       });
     } catch (error) {
+      console.error('Login error:', error);
       toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Failed to login",
-        variant: "destructive",
+        title: 'Error',
+        description: 'Invalid email or password',
+        variant: 'destructive',
       });
-      throw error;
-    }
-  };
-
-  const register = async (name: string, email: string, password: string) => {
-    try {
-      const response = await fetch('/api/auth/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, email, password }),
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message);
-      }
-
-      toast({
-        title: "Success",
-        description: "Please check your email to verify your account.",
-      });
-      router.push('/auth/login');
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Failed to register",
-        variant: "destructive",
-      });
-      throw error;
     }
   };
 
   const logout = async () => {
     try {
-      await fetch('/api/auth/logout', { method: 'POST' });
+      const authClient = getServiceClient('AUTH_SERVICE');
+      await authClient.post('/logout');
       setUser(null);
-      router.push('/');
-      toast({
-        title: "Success",
-        description: "You have been logged out successfully.",
-      });
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to logout",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const forgotPassword = async (email: string) => {
-    try {
-      const response = await fetch('/api/auth/forgot-password', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email }),
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message);
-      }
-
-      toast({
-        title: "Success",
-        description: "Password reset instructions have been sent to your email.",
-      });
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Failed to send reset email",
-        variant: "destructive",
-      });
-      throw error;
-    }
-  };
-
-  const resetPassword = async (token: string, password: string) => {
-    try {
-      const response = await fetch('/api/auth/reset-password', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token, password }),
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message);
-      }
-
-      toast({
-        title: "Success",
-        description: "Your password has been reset successfully.",
-      });
       router.push('/auth/login');
-    } catch (error) {
       toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Failed to reset password",
-        variant: "destructive",
+        title: 'Success',
+        description: 'Successfully logged out',
       });
-      throw error;
+    } catch (error) {
+      console.error('Logout error:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to logout',
+        variant: 'destructive',
+      });
     }
   };
 
-  const verifyEmail = async (id: string, hash: string) => {
-    try {
-      const response = await fetch('/api/auth/verify-email', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id, hash }),
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message);
-      }
-
-      toast({
-        title: "Success",
-        description: "Your email has been verified successfully.",
-      });
-      router.push('/auth/login');
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Failed to verify email",
-        variant: "destructive",
-      });
-      throw error;
-    }
-  };
+  useEffect(() => {
+    checkAuth();
+  }, []);
 
   return (
     <AuthContext.Provider
@@ -211,22 +94,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         user,
         loading,
         login,
-        register,
         logout,
-        forgotPassword,
-        resetPassword,
-        verifyEmail,
+        checkAuth,
       }}
     >
       {children}
     </AuthContext.Provider>
   );
-}
+};
 
-export function useAuth() {
+const useAuth = () => {
   const context = useContext(AuthContext);
   if (!context) {
     throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
-}
+};
+
+export { AuthProvider, useAuth };

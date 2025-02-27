@@ -13,6 +13,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/components/ui/use-toast';
+import { getServiceClient } from '@/lib/api/client';
 
 const loginSchema = z.object({
   email: z.string().email('Invalid email address'),
@@ -41,15 +42,13 @@ export default function LoginPage() {
   const onSubmit = async (data: LoginFormData) => {
     setIsLoading(true);
     try {
-      const response = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(data),
+      const authClient = getServiceClient('AUTH_SERVICE');
+      const response = await authClient.post('/login', {
+        email: data.email,
+        password: data.password
       });
 
-      if (!response.ok) {
+      if (response.status !== 200) {
         throw new Error('Login failed');
       }
 
@@ -59,6 +58,7 @@ export default function LoginPage() {
         description: 'Successfully logged in',
       });
     } catch (error) {
+      console.error('Login error:', error);
       toast({
         title: 'Error',
         description: 'Invalid email or password',

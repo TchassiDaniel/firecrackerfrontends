@@ -1,203 +1,91 @@
-// Fichier app/admin/all-vms/page.tsx 
-
 'use client';
 
-import { useEffect, useState } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
-import Link from 'next/link';
-import { Card } from '@/components/ui/card';
+import React from 'react';
+import { useAdminVMs } from '@/hooks/useAdminVMs';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { Input } from "@/components/ui/input";
-import { Progress } from "@/components/ui/progress";
-import { 
+} from '@/components/ui/select';
+import { Input } from '@/components/ui/input';
+import {
   Table,
   TableBody,
   TableCell,
   TableHead,
   TableHeader,
-  TableRow 
+  TableRow,
 } from '@/components/ui/table';
-import { 
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
-import { 
-  EyeIcon, 
-  PlayIcon, 
-  StopIcon, 
-  TrashIcon, 
-  XMarkIcon,
-  MagnifyingGlassIcon,
-  CpuChipIcon,
-  CircleStackIcon
-} from '@heroicons/react/24/outline';
-import { useToast } from '@/components/ui/use-toast';
-
-interface User {
-  id: string;
-  name: string;
-  email: string;
-}
-
-interface VirtualMachine {
-  id: string;
-  name: string;
-  user: User;
-  vcpu_count: number;
-  memory_size_mib: number;
-  disk_size_gb: number;
-  status: 'running' | 'stopped' | 'error' | 'creating';
-  cpu_usage_percent: number;
-  memory_usage_mib: number;
-}
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { Loader2, MoreVertical, Search, X } from 'lucide-react';
+import Link from 'next/link';
 
 export default function AllVirtualMachinesPage() {
-  const router = useRouter();
-  const searchParams = useSearchParams();
-  const { toast } = useToast();
-  const [isLoading, setIsLoading] = useState(true);
-  const [vms, setVms] = useState<VirtualMachine[]>([]);
-  const [users, setUsers] = useState<User[]>([]);
-  const [filters, setFilters] = useState({
-    status: searchParams.get('status') || '',
-    user: searchParams.get('user') || '',
-    search: searchParams.get('search') || '',
-  });
+  const {
+    virtualMachines,
+    users,
+    isLoading,
+    error,
+    filters,
+    setFilters,
+    pagination,
+    updateVMStatus,
+    deleteVM
+  } = useAdminVMs();
 
-  useEffect(() => {
-    fetchData();
-  }, [filters]);
-
-  const fetchData = async () => {
-    try {
-      // Fetch VMs with filters
-      const queryParams = new URLSearchParams({
-        ...(filters.status && { status: filters.status }),
-        ...(filters.user && { user: filters.user }),
-        ...(filters.search && { search: filters.search }),
-      });
-
-      const [vmsResponse, usersResponse] = await Promise.all([
-        fetch(`/api/admin/virtual-machines?${queryParams}`),
-        fetch('/api/admin/users')
-      ]);
-
-      if (!vmsResponse.ok || !usersResponse.ok) {
-        throw new Error('Erreur lors du chargement des données');
-      }
-
-      const [vmsData, usersData] = await Promise.all([
-        vmsResponse.json(),
-        usersResponse.json()
-      ]);
-
-      setVms(vmsData);
-      setUsers(usersData);
-    } catch (error) {
-      toast({
-        title: 'Erreur',
-        description: 'Impossible de charger les machines virtuelles',
-        variant: 'destructive',
-      });
-    } finally {
-      setIsLoading(false);
-    }
+  const handleStatusChange = (value: string) => {
+    setFilters({ ...filters, status: value || undefined });
   };
 
-  // Fonction de gestion des filtres avec typage
-  const handleFilterChange = (field: keyof typeof filters, value: string) => {
-    setFilters(prev => ({
-      ...prev,
-      [field]: value
-    }));
-    
-    // Update URL
-    const newParams = new URLSearchParams(searchParams.toString());
-    if (value) {
-      newParams.set(field, value);
-    } else {
-      newParams.delete(field);
-    }
-    router.push(`?${newParams.toString()}`);
+  const handleUserChange = (value: string) => {
+    setFilters({ ...filters, userId: value || undefined });
+  };
+
+  const handleSearch = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const formData = new FormData(event.currentTarget);
+    const searchTerm = formData.get('search') as string;
+    setFilters({ ...filters, search: searchTerm });
   };
 
   const clearFilters = () => {
-    setFilters({ status: '', user: '', search: '' });
-    router.push('');
-  };
-
-  const handleVmAction = async (vmId: string, action: 'start' | 'stop' | 'delete') => {
-    try {
-      const response = await fetch(`/api/admin/virtual-machines/${vmId}/${action}`, {
-        method: action === 'delete' ? 'DELETE' : 'POST',
-      });
-
-      if (!response.ok) {
-        throw new Error('Erreur lors de l\'exécution de l\'action');
-      }
-
-      toast({
-        title: 'Succès',
-        description: action === 'delete' 
-          ? 'Machine virtuelle supprimée'
-          : `Machine virtuelle ${action === 'start' ? 'démarrée' : 'arrêtée'}`,
-        variant: 'default',
-      });
-
-      fetchData();
-    } catch (error) {
-      toast({
-        title: 'Erreur',
-        description: 'Une erreur est survenue',
-        variant: 'destructive',
-      });
-    }
-  };
-
-  const getStatusBadgeVariant = (status: string) => {
-    switch (status) {
-      case 'running': return 'success';
-      case 'stopped': return 'destructive';
-      case 'error': return 'warning';
-      default: return 'default';
-    }
+    setFilters({});
   };
 
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <p className="text-red-500">{error}</p>
       </div>
     );
   }
 
   return (
-    <div className="container-fluid p-4">
-      <div className="flex justify-between items-center mb-4">
+    <div className="container mx-auto p-6">
+      <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">Toutes les Machines Virtuelles</h1>
 
-        <div className="flex gap-3">
-          <div className="flex gap-2">
-            <Select
-              value={filters.status}
-              onValueChange={(value: string) => handleFilterChange('status', value)}
-            >
-              <SelectTrigger className="w-[160px]">
+        <div className="flex items-center space-x-4">
+          <form onSubmit={handleSearch} className="flex items-center space-x-2">
+            <Select value={filters.status} onValueChange={handleStatusChange}>
+              <SelectTrigger className="w-[150px]">
                 <SelectValue placeholder="Tous les statuts" />
               </SelectTrigger>
               <SelectContent>
@@ -209,10 +97,7 @@ export default function AllVirtualMachinesPage() {
               </SelectContent>
             </Select>
 
-            <Select
-              value={filters.user}
-              onValueChange={(value: string) => handleFilterChange('user', value)}
-            >
+            <Select value={filters.userId} onValueChange={handleUserChange}>
               <SelectTrigger className="w-[200px]">
                 <SelectValue placeholder="Tous les utilisateurs" />
               </SelectTrigger>
@@ -226,161 +111,183 @@ export default function AllVirtualMachinesPage() {
               </SelectContent>
             </Select>
 
-            <div className="flex gap-2">
+            <div className="flex items-center space-x-2">
               <Input
-                type="text"
+                name="search"
                 placeholder="Rechercher..."
-                value={filters.search}
-                onChange={(e) => handleFilterChange('search', e.target.value)}
                 className="w-[200px]"
+                defaultValue={filters.search}
               />
-              <Button variant="outline" size="icon">
-                <MagnifyingGlassIcon className="h-4 w-4" />
+              <Button type="submit" size="icon" variant="ghost">
+                <Search className="h-4 w-4" />
               </Button>
             </div>
+          </form>
 
-            {(filters.status || filters.user || filters.search) && (
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={clearFilters}
-              >
-                <XMarkIcon className="h-4 w-4" />
-              </Button>
-            )}
-          </div>
+          {(filters.status || filters.userId || filters.search) && (
+            <Button onClick={clearFilters} variant="ghost" size="icon">
+              <X className="h-4 w-4" />
+            </Button>
+          )}
         </div>
       </div>
 
       <Card>
-        <div className="p-4">
-          {vms.length > 0 ? (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Nom</TableHead>
-                    <TableHead>Utilisateur</TableHead>
-                    <TableHead>Configuration</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Utilisation</TableHead>
-                    <TableHead>Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {vms.map((vm) => (
-                    <TableRow key={vm.id}>
-                      <TableCell>
-                        <div className="flex flex-col">
-                          <span className="font-medium">{vm.name}</span>
-                          <span className="text-sm text-gray-500">ID: {vm.id}</span>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex flex-col">
-                          <span>{vm.user.name}</span>
-                          <span className="text-sm text-gray-500">{vm.user.email}</span>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex flex-col">
-                          <span>{vm.vcpu_count} vCPUs, {vm.memory_size_mib} MiB</span>
-                          <span className="text-sm text-gray-500">{vm.disk_size_gb} GB</span>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant={getStatusBadgeVariant(vm.status)}>
-                          {vm.status}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <div className="space-y-2">
+        <CardContent className="p-0">
+          {virtualMachines.length > 0 ? (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Nom</TableHead>
+                  <TableHead>Utilisateur</TableHead>
+                  <TableHead>Configuration</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Utilisation</TableHead>
+                  <TableHead className="w-[100px]">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {virtualMachines.map((vm) => (
+                  <TableRow key={vm.id}>
+                    <TableCell>
+                      <div className="flex flex-col">
+                        <span>{vm.name}</span>
+                        <span className="text-sm text-muted-foreground">ID: {vm.id}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex flex-col">
+                        <span>{vm.user.name}</span>
+                        <span className="text-sm text-muted-foreground">{vm.user.email}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex flex-col">
+                        <span>{vm.vcpu_count} vCPUs, {vm.memory_size_mib} MiB</span>
+                        <span className="text-sm text-muted-foreground">{vm.disk_size_gb} GB</span>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <span className={`px-2 py-1 rounded-full text-xs ${
+                        vm.status === 'running' ? 'bg-green-100 text-green-800' :
+                        vm.status === 'stopped' ? 'bg-red-100 text-red-800' :
+                        vm.status === 'error' ? 'bg-yellow-100 text-yellow-800' :
+                        'bg-blue-100 text-blue-800'
+                      }`}>
+                        {vm.status}
+                      </span>
+                    </TableCell>
+                    <TableCell>
+                      {vm.metrics && (
+                        <div className="flex flex-col gap-1">
                           <div className="flex items-center gap-2">
-                            <CpuChipIcon className="h-4 w-4 text-gray-500" />
-                            <Progress value={vm.cpu_usage_percent} className="flex-1" />
-                            <span className="text-sm text-gray-500 w-12 text-right">
-                              {vm.cpu_usage_percent}%
-                            </span>
+                            <span className="text-sm">CPU:</span>
+                            <div className="w-full bg-gray-200 rounded-full h-2">
+                              <div
+                                className="bg-blue-600 h-2 rounded-full"
+                                style={{ width: `${vm.metrics.cpu_usage}%` }}
+                              />
+                            </div>
+                            <span className="text-sm">{vm.metrics.cpu_usage}%</span>
                           </div>
                           <div className="flex items-center gap-2">
-                            <CircleStackIcon className="h-4 w-4 text-gray-500" />
-                            <Progress 
-                              value={(vm.memory_usage_mib / vm.memory_size_mib) * 100} 
-                              className="flex-1"
-                            />
-                            <span className="text-sm text-gray-500 w-24 text-right">
-                              {vm.memory_usage_mib}/{vm.memory_size_mib} MiB
-                            </span>
+                            <span className="text-sm">RAM:</span>
+                            <div className="w-full bg-gray-200 rounded-full h-2">
+                              <div
+                                className="bg-green-600 h-2 rounded-full"
+                                style={{ width: `${vm.metrics.memory_usage}%` }}
+                              />
+                            </div>
+                            <span className="text-sm">{vm.metrics.memory_usage}%</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm">Disque:</span>
+                            <div className="w-full bg-gray-200 rounded-full h-2">
+                              <div
+                                className="bg-yellow-600 h-2 rounded-full"
+                                style={{ width: `${vm.metrics.disk_usage}%` }}
+                              />
+                            </div>
+                            <span className="text-sm">{vm.metrics.disk_usage}%</span>
                           </div>
                         </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex gap-2">
-                          <Link href={`/admin/all-vms/${vm.id}`}>
-                            <Button variant="outline" size="icon">
-                              <EyeIcon className="h-4 w-4" />
-                            </Button>
-                          </Link>
-
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon">
+                            <MoreVertical className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem asChild>
+                            <Link href={`/admin/all-vms/${vm.id}`}>
+                              Voir les détails
+                            </Link>
+                          </DropdownMenuItem>
                           {vm.status === 'stopped' && (
-                            <Button
-                              variant="outline"
-                              size="icon"
-                              onClick={() => handleVmAction(vm.id, 'start')}
-                            >
-                              <PlayIcon className="h-4 w-4" />
-                            </Button>
+                            <DropdownMenuItem onClick={() => updateVMStatus(vm.id, 'start')}>
+                              Démarrer
+                            </DropdownMenuItem>
                           )}
-
                           {vm.status === 'running' && (
-                            <Button
-                              variant="outline"
-                              size="icon"
-                              onClick={() => handleVmAction(vm.id, 'stop')}
-                            >
-                              <StopIcon className="h-4 w-4" />
-                            </Button>
+                            <>
+                              <DropdownMenuItem onClick={() => updateVMStatus(vm.id, 'stop')}>
+                                Arrêter
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => updateVMStatus(vm.id, 'restart')}>
+                                Redémarrer
+                              </DropdownMenuItem>
+                            </>
                           )}
-
-                          <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                              <Button variant="outline" size="icon">
-                                <TrashIcon className="h-4 w-4" />
-                              </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>Confirmer la suppression</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                  Êtes-vous sûr de vouloir supprimer cette machine virtuelle ?
-                                  Cette action est irréversible.
-                                </AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel>Annuler</AlertDialogCancel>
-                                <AlertDialogAction 
-                                  onClick={() => handleVmAction(vm.id, 'delete')}
-                                >
-                                  Supprimer
-                                </AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
+                          <DropdownMenuItem
+                            className="text-red-600"
+                            onClick={() => deleteVM(vm.id)}
+                          >
+                            Supprimer
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
           ) : (
-            <div className="text-center py-8">
-              <div className="text-gray-400 text-4xl mb-4">💻</div>
-              <p className="text-gray-500 mb-4">Aucune machine virtuelle trouvée</p>
+            <div className="flex flex-col items-center justify-center py-12">
+              <div className="h-12 w-12 text-gray-400">🖥️</div>
+              <p className="mt-2 text-muted-foreground">Aucune machine virtuelle trouvée</p>
             </div>
           )}
-        </div>
+        </CardContent>
       </Card>
+
+      {virtualMachines.length > 0 && (
+        <div className="mt-4 flex items-center justify-between">
+          <p className="text-sm text-muted-foreground">
+            Affichage de {virtualMachines.length} sur {pagination.total} machines virtuelles
+          </p>
+          <div className="flex items-center space-x-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setFilters({ ...filters, page: pagination.currentPage - 1 })}
+              disabled={pagination.currentPage === 1}
+            >
+              Précédent
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setFilters({ ...filters, page: pagination.currentPage + 1 })}
+              disabled={pagination.currentPage === pagination.lastPage}
+            >
+              Suivant
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

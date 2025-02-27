@@ -1,0 +1,138 @@
+{
+  "users": [
+    {
+      "id": "1",
+      "name": "John Doe",
+      "email": "wandjilegentia@gmail.com",
+      "password": "$2a$10$XOPbrlUKSqIkDgGw9URkCO6NM/T7FOqQy0uWqLDYQaRI4kQJPxLfO",
+      "role": "admin"
+    },
+    {
+      "id": "2",
+      "name": "Jane Smith",
+      "email": "jane@example.com",
+      "password": "$2a$10$XOPbrlUKSqIkDgGw9URkCO6NM/T7FOqQy0uWqLDYQaRI4kQJPxLfO",
+      "role": "user"
+    }
+  ],
+  "vms": [
+    {
+      "id": "1",
+      "name": "VM-Test-1",
+      "status": "running",
+      "vcpu_count": 2,
+      "memory_size_mib": 2048,
+      "disk_size_gb": 20,
+      "created_at": "2024-02-25T10:00:00Z",
+      "ip_address": "192.168.1.100",
+      "mac_address": "00:11:22:33:44:55",
+      "tap_device_name": "tap0",
+      "tap_ip": "192.168.1.1",
+      "user": {
+        "id": "1",
+        "name": "John Doe",
+        "email": "john@example.com"
+      },
+      "systemImage": {
+        "id": "1",
+        "name": "Ubuntu 22.04 LTS"
+      },
+      "vmOffer": {
+        "id": "1",
+        "name": "Standard"
+      },
+      "metrics": {
+        "cpu_usage": 45,
+        "memory_usage": 60,
+        "disk_usage": 30,
+        "network_rx_bytes": 1024000,
+        "network_tx_bytes": 512000,
+        "disk_read_bytes": 2048000,
+        "disk_write_bytes": 1024000
+      }
+    },
+    {
+      "id": "2",
+      "name": "VM-Test-2",
+      "status": "stopped",
+      "vcpu_count": 4,
+      "memory_size_mib": 4096,
+      "disk_size_gb": 40,
+      "created_at": "2024-02-24T15:30:00Z",
+      "ip_address": "192.168.1.101",
+      "mac_address": "00:11:22:33:44:66",
+      "tap_device_name": "tap1",
+      "tap_ip": "192.168.1.2",
+      "user": {
+        "id": "2",
+        "name": "Jane Smith",
+        "email": "jane@example.com"
+      },
+      "systemImage": {
+        "id": "2",
+        "name": "Debian 11"
+      },
+      "vmOffer": {
+        "id": "2",
+        "name": "Premium"
+      },
+      "metrics": {
+        "cpu_usage": 0,
+        "memory_usage": 0,
+        "disk_usage": 25,
+        "network_rx_bytes": 0,
+        "network_tx_bytes": 0,
+        "disk_read_bytes": 0,
+        "disk_write_bytes": 0
+      }
+    }
+  ],
+  "system-images": [
+    {
+      "id": "1",
+      "name": "Ubuntu 22.04 LTS",
+      "description": "Ubuntu Server LTS",
+      "size_gb": 2,
+      "created_at": "2024-01-15T08:00:00Z"
+    },
+    {
+      "id": "2",
+      "name": "Debian 11",
+      "description": "Debian Stable",
+      "size_gb": 1.8,
+      "created_at": "2024-01-20T10:00:00Z"
+    }
+  ],
+  "vm-logs": [
+    {
+      "vm_id": "1",
+      "logs": [
+        {
+          "timestamp": "2024-02-25T12:00:00Z",
+          "level": "info",
+          "message": "VM started successfully"
+        },
+        {
+          "timestamp": "2024-02-25T12:00:05Z",
+          "level": "info",
+          "message": "Network interface configured"
+        }
+      ]
+    },
+    {
+      "vm_id": "2",
+      "logs": [
+        {
+          "timestamp": "2024-02-24T15:30:00Z",
+          "level": "info",
+          "message": "VM created"
+        },
+        {
+          "timestamp": "2024-02-24T18:45:00Z",
+          "level": "warning",
+          "message": "VM stopped by user"
+        }
+      ]
+    }
+  ]
+}

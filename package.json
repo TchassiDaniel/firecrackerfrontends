@@ -6,7 +6,8 @@
     "dev": "next dev --turbopack",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "mock-api": "node ./mock/server.js"
   },
   "dependencies": {
     "@heroicons/react": "^2.2.0",
@@ -22,9 +23,14 @@
     "@radix-ui/react-slot": "^1.1.2",
     "@radix-ui/react-toast": "^1.2.6",
     "axios": "^1.7.9",
+    "bcryptjs": "^3.0.2",
     "class-variance-authority": "^0.7.1",
+    "cookie-parser": "^1.4.7",
+    "cors": "^2.8.5",
     "date-fns": "^4.1.0",
+    "express": "^4.21.2",
     "firecracker-app": "file:",
+    "jsonwebtoken": "^9.0.2",
     "lucide-react": "^0.475.0",
     "next": "15.1.7",
     "next-auth": "^4.24.11",
@@ -40,6 +46,7 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "json-server": "^1.0.0-beta.3",
     "postcss": "^8",
     "tailwindcss": "^3.4.1",
     "typescript": "^5"
