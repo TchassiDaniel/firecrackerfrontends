@@ -35,7 +35,7 @@ npm run dev
 1. Ouvrez [http://localhost:3000](http://localhost:3000) dans votre navigateur
 2. Utilisez les identifiants suivants pour vous connecter :
    - Email: utilisez un email existant dans `mock/db.json`
-   - Mot de passe: "password"
+   - Mot de passe: le mot de passe se trouve dans db.json : "123456789"
 
 ## Structure du Projet
 
