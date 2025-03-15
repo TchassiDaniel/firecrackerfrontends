@@ -45,25 +45,36 @@ const authenticateToken = (req, res, next) => {
 // Ajouter un délai artificiel
 const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
-// Routes d'authentification
+
+// Routes pout la connexion 
 app.post('/api/auth/login', async (req, res) => {
   await delay(500);
   const { email, password } = req.body;
   const db = getDb();
   
-  const user = db.users.find(u => u.email === email);
+  //on verifie si l'utilisateur est dans la bd
+  const user = db.users.find(u => u.email === email); //je chercher l'email dans la bd
   
-  // Pour le développement, accepter "password" directement
-  if (!user || password !== "password") {
-    return res.status(401).json({ message: 'Invalid credentials' });
+    if (!user) {
+      return res.status(405).json({ message: 'utilisateur non trouve ' });
+    }
+
+  //on verifie que le mot de passe est correcte
+  if ( user.password !== password) {
+    console.log(password);
+    console.log(user.password);
+    return res.status(401).json({ message: 'mot de passe incorrect' });
   }
   
+  //toker pour la session
+
   const token = jwt.sign(
     { id: user.id, email: user.email, role: user.role },
     JWT_SECRET,
     { expiresIn: '24h' }
   );
   
+  //cookie pour le token pour la session
   res.cookie('token', token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
@@ -71,26 +82,37 @@ app.post('/api/auth/login', async (req, res) => {
     maxAge: 24 * 60 * 60 * 1000 // 24 heures
   });
   
-  res.json({
-    id: user.id,
-    name: user.name,
-    email: user.email,
-    role: user.role
-  });
+  // Préparer la réponse
+  const response = {
+    user: {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      role: user.role
+    }
+  };
+  
+ 
+
+  // Envoyer la réponse
+  res.json(response);
+ 
 });
 
+//routes pour la deconnnexion
 app.post('/api/auth/logout', (req, res) => {
   res.clearCookie('token');
   res.json({ message: 'Logged out successfully' });
 });
 
+//routes pour get un utilisateurs
 app.get('/api/auth/user', authenticateToken, async (req, res) => {
   await delay(500);
   const db = getDb();
   const user = db.users.find(u => u.id === req.user.id);
   
   if (!user) {
-    return res.status(404).json({ message: 'User not found' });
+    return res.status(404).json({ message: 'utilisateur non trouve' });
   }
   
   res.json({
@@ -101,15 +123,16 @@ app.get('/api/auth/user', authenticateToken, async (req, res) => {
   });
 });
 
-// Routes pour l'admin
+
+// Routes pour l'administrateur
 app.get('/api/vms', authenticateToken, async (req, res) => {
   await delay(500);
-  const db = getDb();
+  const db = getDb(); //je recupere les vms dans la bd
   let vms = db.vms || [];
 
   // Vérifier si l'utilisateur est admin
   if (req.user.role !== 'admin') {
-    return res.status(403).json({ message: 'Admin access required' });
+    return res.status(403).json({ message: 'il faut etre admin ' });
   }
 
   // Appliquer les filtres
@@ -134,10 +157,12 @@ app.get('/api/vms', authenticateToken, async (req, res) => {
   res.json(vms);
 });
 
+//recupere une vm specifique
 app.get('/api/vms/:id', authenticateToken, async (req, res) => {
   await delay(500);
   const db = getDb();
   
+
   // Vérifier si l'utilisateur est admin
   if (req.user.role !== 'admin') {
     return res.status(403).json({ message: 'Admin access required' });
@@ -151,6 +176,8 @@ app.get('/api/vms/:id', authenticateToken, async (req, res) => {
   
   res.json(vm);
 });
+
+//recuperer les logs d'une vm
 
 app.get('/api/vms/:id/logs', authenticateToken, async (req, res) => {
   await delay(500);
@@ -195,6 +222,7 @@ app.get('/api/system-images', authenticateToken, async (req, res) => {
   const db = getDb();
   res.json(db['system-images'] || []);
 });
+
 
 // Démarrer le serveur
 app.listen(port, () => {

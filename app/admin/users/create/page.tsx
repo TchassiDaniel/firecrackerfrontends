@@ -1,5 +1,3 @@
-// Fichier app/admin/users/create/page.tsx 
-
 'use client';
 
 import { useState } from 'react';
@@ -17,7 +15,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useToast } from '@/components/ui/use-toast';
-import { ArrowLeftIcon, UserPlusIcon } from '@heroicons/react/24/outline';
+import { ArrowLeftIcon, UserPlusIcon, UserIcon, EnvelopeIcon, KeyIcon, ShieldCheckIcon } from '@heroicons/react/24/outline';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
@@ -87,113 +85,156 @@ export default function CreateUserPage() {
   };
 
   return (
-    <div className="container-fluid p-4">
-      <div className="max-w-2xl mx-auto">
-        <Card>
-          <div className="p-6">
-            <h2 className="text-2xl font-bold mb-6">Créer un Nouvel Utilisateur</h2>
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Créer un Nouvel Utilisateur</h1>
+          <p className="text-gray-500 mt-2">
+            Ajoutez un nouvel utilisateur à la plateforme avec des permissions spécifiques.
+          </p>
+        </div>
+        <Link href="/admin/users">
+          <Button variant="outline" className="gap-2">
+            <ArrowLeftIcon className="h-4 w-4" />
+            Retour
+          </Button>
+        </Link>
+      </div>
 
-            <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-              <div className="space-y-4">
-                <div>
-                  <Label htmlFor="name">Nom</Label>
-                  <Input
-                    id="name"
-                    {...register('name')}
-                    className={errors.name ? 'border-red-500' : ''}
-                  />
-                  {errors.name && (
-                    <p className="text-sm text-red-500 mt-1">{errors.name.message}</p>
-                  )}
+      <Card>
+        <div className="p-6">
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
+            <div className="grid gap-6">
+              {/* Informations de base */}
+              <div>
+                <h2 className="text-lg font-semibold mb-4">Informations de base</h2>
+                <div className="grid gap-4">
+                  <div>
+                    <Label htmlFor="name" className="flex items-center gap-2">
+                      <UserIcon className="h-4 w-4 text-gray-500" />
+                      Nom complet
+                    </Label>
+                    <Input
+                      id="name"
+                      {...register('name')}
+                      className={`mt-1.5 ${errors.name ? 'border-red-500 focus:ring-red-500' : ''}`}
+                      placeholder="John Doe"
+                    />
+                    {errors.name && (
+                      <p className="text-sm text-red-500 mt-1.5">{errors.name.message}</p>
+                    )}
+                  </div>
+
+                  <div>
+                    <Label htmlFor="email" className="flex items-center gap-2">
+                      <EnvelopeIcon className="h-4 w-4 text-gray-500" />
+                      Adresse email
+                    </Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      {...register('email')}
+                      className={`mt-1.5 ${errors.email ? 'border-red-500 focus:ring-red-500' : ''}`}
+                      placeholder="john.doe@example.com"
+                    />
+                    {errors.email && (
+                      <p className="text-sm text-red-500 mt-1.5">{errors.email.message}</p>
+                    )}
+                  </div>
                 </div>
+              </div>
 
-                <div>
-                  <Label htmlFor="email">Email</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    {...register('email')}
-                    className={errors.email ? 'border-red-500' : ''}
-                  />
-                  {errors.email && (
-                    <p className="text-sm text-red-500 mt-1">{errors.email.message}</p>
-                  )}
+              {/* Sécurité */}
+              <div className="border-t pt-6">
+                <h2 className="text-lg font-semibold mb-4">Sécurité</h2>
+                <div className="grid gap-4">
+                  <div>
+                    <Label htmlFor="password" className="flex items-center gap-2">
+                      <KeyIcon className="h-4 w-4 text-gray-500" />
+                      Mot de passe
+                    </Label>
+                    <Input
+                      id="password"
+                      type="password"
+                      {...register('password')}
+                      className={`mt-1.5 ${errors.password ? 'border-red-500 focus:ring-red-500' : ''}`}
+                      placeholder="••••••••"
+                    />
+                    {errors.password && (
+                      <p className="text-sm text-red-500 mt-1.5">{errors.password.message}</p>
+                    )}
+                  </div>
+
+                  <div>
+                    <Label htmlFor="password_confirmation" className="flex items-center gap-2">
+                      <KeyIcon className="h-4 w-4 text-gray-500" />
+                      Confirmer le mot de passe
+                    </Label>
+                    <Input
+                      id="password_confirmation"
+                      type="password"
+                      {...register('password_confirmation')}
+                      className={`mt-1.5 ${errors.password_confirmation ? 'border-red-500 focus:ring-red-500' : ''}`}
+                      placeholder="••••••••"
+                    />
+                    {errors.password_confirmation && (
+                      <p className="text-sm text-red-500 mt-1.5">
+                        {errors.password_confirmation.message}
+                      </p>
+                    )}
+                  </div>
                 </div>
+              </div>
 
+              {/* Permissions */}
+              <div className="border-t pt-6">
+                <h2 className="text-lg font-semibold mb-4">Permissions</h2>
                 <div>
-                  <Label htmlFor="password">Mot de passe</Label>
-                  <Input
-                    id="password"
-                    type="password"
-                    {...register('password')}
-                    className={errors.password ? 'border-red-500' : ''}
-                  />
-                  {errors.password && (
-                    <p className="text-sm text-red-500 mt-1">{errors.password.message}</p>
-                  )}
-                </div>
-
-                <div>
-                  <Label htmlFor="password_confirmation">Confirmer le mot de passe</Label>
-                  <Input
-                    id="password_confirmation"
-                    type="password"
-                    {...register('password_confirmation')}
-                    className={errors.password_confirmation ? 'border-red-500' : ''}
-                  />
-                  {errors.password_confirmation && (
-                    <p className="text-sm text-red-500 mt-1">
-                      {errors.password_confirmation.message}
-                    </p>
-                  )}
-                </div>
-
-                <div>
-                  <Label htmlFor="role">Rôle</Label>
+                  <Label htmlFor="role" className="flex items-center gap-2">
+                    <ShieldCheckIcon className="h-4 w-4 text-gray-500" />
+                    Rôle de l'utilisateur
+                  </Label>
                   <Select
                     value={watch('role')}
                     onValueChange={(value: 'user' | 'admin') => setValue('role', value)}
                   >
-                    <SelectTrigger>
+                    <SelectTrigger className="mt-1.5 bg-white dark:bg-gray-800">
                       <SelectValue placeholder="Sélectionner un rôle" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="user">Utilisateur</SelectItem>
+                      <SelectItem value="user">Utilisateur standard</SelectItem>
                       <SelectItem value="admin">Administrateur</SelectItem>
                     </SelectContent>
                   </Select>
                   {errors.role && (
-                    <p className="text-sm text-red-500 mt-1">{errors.role.message}</p>
+                    <p className="text-sm text-red-500 mt-1.5">{errors.role.message}</p>
                   )}
                 </div>
               </div>
+            </div>
 
-              <div className="flex justify-between items-center pt-4">
-                <Link href="/admin/users">
-                  <Button variant="outline" type="button">
-                    <ArrowLeftIcon className="h-4 w-4 mr-2" />
-                    Retour
-                  </Button>
-                </Link>
-
-                <Button type="submit" disabled={isSubmitting}>
-                  {isSubmitting ? (
-                    <div className="flex items-center">
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                      Création en cours...
-                    </div>
-                  ) : (
-                    <>
-                      <UserPlusIcon className="h-4 w-4 mr-2" />
-                      Créer l'utilisateur
-                    </>
-                  )}
-                </Button>
-              </div>
-            </form>
-          </div>
-        </Card>
-      </div>
+            <div className="flex justify-end pt-6 border-t">
+              <Button 
+                type="submit" 
+                disabled={isSubmitting}
+                className="bg-blue-600 hover:bg-blue-700"
+              >
+                {isSubmitting ? (
+                  <div className="flex items-center gap-2">
+                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                    Création en cours...
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <UserPlusIcon className="h-4 w-4" />
+                    Créer l'utilisateur
+                  </div>
+                )}
+              </Button>
+            </div>
+          </form>
+        </div>
+      </Card>
     </div>
   );
 }

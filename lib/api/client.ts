@@ -14,10 +14,10 @@ const isDevelopment = process.env.NODE_ENV === 'development';
 
 // Configuration des URLs des services
 const serviceUrls = {
-  AUTH_SERVICE: isDevelopment ? 'http://localhost:3002/api/auth' : process.env.NEXT_PUBLIC_AUTH_SERVICE_URL,
-  USER_SERVICE: isDevelopment ? 'http://localhost:3002/api/users' : process.env.NEXT_PUBLIC_USER_SERVICE_URL,
-  VM_SERVICE: isDevelopment ? 'http://localhost:3002/api/vms' : process.env.NEXT_PUBLIC_VM_SERVICE_URL,
-  NOTIFICATION_SERVICE: isDevelopment ? 'http://localhost:3002/api/notifications' : process.env.NEXT_PUBLIC_NOTIFICATION_SERVICE_URL,
+  AUTH_SERVICE: process.env.NEXT_PUBLIC_AUTH_SERVICE_URL || '',
+  USER_SERVICE: process.env.NEXT_PUBLIC_USER_SERVICE_URL || '',
+  VM_SERVICE: process.env.NEXT_PUBLIC_VM_SERVICE_URL || '',
+  NOTIFICATION_SERVICE: process.env.NEXT_PUBLIC_NOTIFICATION_SERVICE_URL || '',
 };
 
 // Configuration des services

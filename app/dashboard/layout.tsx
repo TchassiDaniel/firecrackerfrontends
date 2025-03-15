@@ -13,11 +13,15 @@ export default function DashboardLayout({
   const { user, loading } = useAuth();
   const router = useRouter();
 
-  useEffect(() => {
-    if (!loading && !user) {
+useEffect(() => {
+  console.log('User value:', user);
+  if (!loading && !user) {
+    // Ajouter un délai pour permettre au token de se configurer
+    setTimeout(() => {
       router.push('/auth/login');
-    }
-  }, [user, loading, router]);
+    }, 5000);
+  }
+}, [user, loading, router]);
 
   if (loading) {
     return (
