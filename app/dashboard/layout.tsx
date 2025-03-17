@@ -14,9 +14,11 @@ export default function DashboardLayout({
   const router = useRouter();
 
 useEffect(() => {
-  console.log('User value:', user);
+  console.log('valeur de l utilisateur:', user);
+
   if (!loading && !user) {
     // Ajouter un délai pour permettre au token de se configurer
+    console.log("aucun utilisateur dans useauth vous serez rediriger vers le login")
     setTimeout(() => {
       router.push('/auth/login');
     }, 5000);

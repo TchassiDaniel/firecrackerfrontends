@@ -83,19 +83,12 @@ app.post('/api/auth/login', async (req, res) => {
   });
   
   // Préparer la réponse
-  const response = {
-    user: {
-      id: user.id,
-      name: user.name,
-      email: user.email,
-      role: user.role
-    }
-  };
-  
- 
-
-  // Envoyer la réponse
-  res.json(response);
+  res.json({
+    id: user.id,
+    name: user.name,
+    email: user.email,
+    role: user.role
+  });
  
 });
 

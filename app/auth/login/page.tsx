@@ -13,7 +13,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/components/ui/use-toast';
-import { getServiceClient } from '@/lib/api/client';
+import { useAuth } from '@/hooks/useAuth';
+
 
 const loginSchema = z.object({
   email: z.string().email('Invalid email address'),
@@ -27,7 +28,7 @@ export default function LoginPage() {
   const router = useRouter();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
-
+  const { login } = useAuth(); //POUR LE LOGIN
   const {
     register,
     handleSubmit,
@@ -42,21 +43,8 @@ export default function LoginPage() {
   const onSubmit = async (data: LoginFormData) => {
     setIsLoading(true);
     try {
-      const authClient = getServiceClient('AUTH_SERVICE');
-      const response = await authClient.post('/login', {
-        email: data.email,
-        password: data.password
-      });
-
-      if (response.status !== 200) {
-        throw new Error('Login failed');
-      }
-
-      router.push('/dashboard');
-      toast({
-        title: 'Success',
-        description: 'Successfully logged in',
-      });
+      // Utiliser la fonction login du hook useAuth
+      await login(data.email, data.password);
     } catch (error) {
       console.error('Login error:', error);
       toast({

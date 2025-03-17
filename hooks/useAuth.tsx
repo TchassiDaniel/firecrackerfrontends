@@ -32,25 +32,32 @@ const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     try {
       const authClient = getServiceClient('AUTH_SERVICE');
       const response = await authClient.get('/user');
-      setUser(response.data);
+
+      setUser(response.data); //on recupere l'utilisateur envoye par serverjs
+
       return response.data;
     } catch (error: any) {
+
       // Si l'erreur est 401 ou 403, c'est normal quand non authentifié
       if (error.response && (error.response.status === 401 || error.response.status === 403)) {
-        //setUser(null);
+         setUser(null);
+
         // Rediriger vers login si on n'est pas déjà sur une page d'auth
         if (!window.location.pathname.startsWith('/auth/')) {
           router.push('/auth/login');
         }
         return null;
       }
+
       // Pour les autres erreurs, on affiche un toast
       toast({
         title: 'Erreur',
         description: 'Erreur lors de la vérification de l\'authentification',
         variant: 'destructive',
       });
-      //setUser(null);
+
+      setUser(null);
+
       return null;
     } finally {
       setLoading(false);
@@ -65,16 +72,19 @@ const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         password 
       });
   
-       console.log(response)
+       console.log("reponse du login de useAuth")
+       console.log('reponse user data ',response.data)
+
       // Vérifier que la réponse est réussie (statut 2xx)
       if (response.status >= 200 && response.status < 300) {
         setUser(response.data);
-        console.log(user)
+        
         toast({
           title: 'Succès',
           description: 'Connexion réussie',
         });
         router.push('/dashboard');
+
       } else {
         // Si la réponse n'est pas réussie, afficher l'erreur
         toast({
