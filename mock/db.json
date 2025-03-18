@@ -9,6 +9,13 @@
     },
     {
       "id": "2",
+      "name": "f",
+      "email": "f@gmail.com",
+      "password": "123456789",
+      "role": "admin"
+    },
+    {
+      "id": "2",
       "name": "donchi",
       "email": "donchi@gmail.com",
       "password": "123456789",
