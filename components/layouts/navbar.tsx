@@ -136,6 +136,28 @@ export default function Navbar() {
                 ) : (
                   <>
                     <DropdownMenuItem asChild>
+                      
+                      <Link href="/" className="text-gray-700 hover:text-[#0066FF] transition-colors">
+                        Home
+                      </Link>
+                      <Link href="/course" className="text-gray-700 hover:text-[#0066FF] transition-colors">
+                        Course
+                      </Link>
+                      <Link href="/pricing" className="text-gray-700 hover:text-[#0066FF] transition-colors">
+                        Pricing
+                      </Link>
+                      <Link href="/about" className="text-gray-700 hover:text-[#0066FF] transition-colors">
+                        About Us
+                      </Link>
+                      <Link href="/Contact" className="text-gray-700 hover:text-[#0066FF] transition-colors">
+                        Contact
+                      </Link>
+                      <Link href="/Help" className="text-black hover:text-[#0066FF] transition-colors">
+                      <span>  Help  </span>
+                      </Link>
+
+                     
+                    
                       <Link href="/auth/login" className="flex items-center space-x-2">
                         <LogIn className="h-4 w-4" />
                         <span>Connexion</span>
