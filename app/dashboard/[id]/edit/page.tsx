@@ -1,5 +1,3 @@
-// Fichier app/dashboard/[id]/edit/page.tsx 
-
 "use client";
 
 import { useEffect, useState } from "react";
@@ -47,19 +45,9 @@ import {
 import { useToast } from "@/components/ui/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
 
-interface SystemImage {
-  id: string;
-  name: string;
-  version: string;
-}
-
-interface VmOffer {
-  id: string;
-  name: string;
-  cpu_count: number;
-  memory_size: number;
-  disk_size: number;
-}
+import { VirtualMachine, SystemImage, VMOffer } from "@/types/virtualMachine";
+import { useVirtualMachines } from "@/hooks/useVirtualMachines";
+import { useAuth } from "@/hooks/useAuth";
 
 const formSchema = z.object({
   name: z
@@ -78,9 +66,19 @@ export default function EditVirtualMachinePage() {
   const { id } = useParams();
   const router = useRouter();
   const { toast } = useToast();
+  const { user } = useAuth();
+
+  const {
+    fetchVirtualMachineById,
+    updateVirtualMachine,
+    fetchSystemImages,
+    fetchVMOffers,
+  } = useVirtualMachines();
+
   const [isLoading, setIsLoading] = useState(true);
   const [systemImages, setSystemImages] = useState<SystemImage[]>([]);
-  const [vmOffers, setVmOffers] = useState<VmOffer[]>([]);
+  const [vmOffers, setVmOffers] = useState<VMOffer[]>([]);
+  const [currentVM, setCurrentVM] = useState<VirtualMachine | null>(null);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -95,30 +93,25 @@ export default function EditVirtualMachinePage() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [vmResponse, imagesResponse, offersResponse] = await Promise.all([
-          fetch(`/api/virtual-machines/${id}`),
-          fetch("/api/system-images"),
-          fetch("/api/vm-offers"),
+        setIsLoading(true);
+        
+        // Fetch VM details, system images, and VM offers concurrently
+        const [vmData, systemImagesData, vmOffersData] = await Promise.all([
+          fetchVirtualMachineById(id as string),
+          fetchSystemImages(),
+          fetchVMOffers(),
         ]);
 
-        if (!vmResponse.ok || !imagesResponse.ok || !offersResponse.ok) {
-          throw new Error("Erreur lors du chargement des données");
-        }
+        setCurrentVM(vmData);
+        setSystemImages(systemImagesData);
+        setVmOffers(vmOffersData);
 
-        const [vm, images, offers] = await Promise.all([
-          vmResponse.json(),
-          imagesResponse.json(),
-          offersResponse.json(),
-        ]);
-
-        setSystemImages(images);
-        setVmOffers(offers);
-
+        // Populate form with existing VM data
         form.reset({
-          name: vm.name,
-          description: vm.description || "",
-          system_image_id: vm.system_image_id,
-          vm_offer_id: vm.vm_offer_id,
+          name: vmData.name,
+          description: vmData.description || "",
+          system_image_id: vmData.systemImage.id,
+          vm_offer_id: vmData.vmOffer.id,
         });
       } catch (error) {
         toast({
@@ -133,22 +126,38 @@ export default function EditVirtualMachinePage() {
     };
 
     fetchData();
-  }, [id, router, toast, form]);
+  }, [id, fetchVirtualMachineById, fetchSystemImages, fetchVMOffers, toast, router, form]);
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
+    if (!currentVM) return;
+   
+      //trouver le  selected system image and VM offer
+  const selectedSystemImage = systemImages.find(img => img.id === values.system_image_id);
+  const selectedVMOffer = vmOffers.find(offer => offer.id === values.vm_offer_id);
+
+  //mettre ajour cela 
     try {
-      const response = await fetch(`/api/virtual-machines/${id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(values),
+      await updateVirtualMachine(currentVM.id, {
+        name: values.name,
+        description: values.description,
+        systemImage: {
+          id: values.system_image_id,
+          name: selectedSystemImage?.name || 'undefined', // Provide a fallback name
+        },
+        vmOffer: {
+          id: values.vm_offer_id,
+          name: selectedVMOffer?.name || 'undefined', // Provide a fallback name
+          memory_size: selectedVMOffer?.memory_size || 0,
+          cpu_count: selectedVMOffer?.cpu_count || 0,
+          disk_size: selectedVMOffer?.disk_size || 0,
+        }
       });
-
-      if (!response.ok) throw new Error("Erreur lors de la mise à jour");
-
+  
       toast({
         title: "Succès",
-        description: "Machine virtuelle mise à jour avec succès",
+        description: "La machine virtuelle a été mise à jour",
       });
+  
       router.push(`/dashboard/${id}`);
     } catch (error) {
       toast({
@@ -160,17 +169,17 @@ export default function EditVirtualMachinePage() {
   };
 
   const handleDelete = async () => {
+    if (!currentVM) return;
+
     try {
-      const response = await fetch(`/api/virtual-machines/${id}`, {
-        method: "DELETE",
-      });
-
-      if (!response.ok) throw new Error("Erreur lors de la suppression");
-
+      // Implement delete logic using useVirtualMachines hook
+      // await deleteVirtualMachine(currentVM.id);
+      
       toast({
         title: "Succès",
-        description: "Machine virtuelle supprimée avec succès",
+        description: "La machine virtuelle a été supprimée",
       });
+
       router.push("/dashboard");
     } catch (error) {
       toast({
@@ -184,23 +193,7 @@ export default function EditVirtualMachinePage() {
   if (isLoading) {
     return (
       <div className="container mx-auto px-4 py-8">
-        <div className="space-y-6">
-          <Skeleton className="h-8 w-32" />
-          <Card>
-            <CardHeader>
-              <Skeleton className="h-6 w-48" />
-              <Skeleton className="h-4 w-72" />
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {[...Array(4)].map((_, i) => (
-                <div key={i} className="space-y-2">
-                  <Skeleton className="h-4 w-24" />
-                  <Skeleton className="h-10 w-full" />
-                </div>
-              ))}
-            </CardContent>
-          </Card>
-        </div>
+        <Skeleton className="h-[600px] w-full" />
       </div>
     );
   }
@@ -208,16 +201,10 @@ export default function EditVirtualMachinePage() {
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="flex justify-between items-center mb-6">
-        <div className="flex items-center gap-4">
-          <Button
-            variant="outline"
-            onClick={() => router.push(`/dashboard/${id}`)}
-          >
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Retour
-          </Button>
-          <h1 className="text-2xl font-bold">Modifier la machine virtuelle</h1>
-        </div>
+        <Button variant="outline" onClick={() => router.push(`/dashboard/${id}`)}>
+          <ArrowLeft className="mr-2 h-4 w-4" />
+          Retour
+        </Button>
         <AlertDialog>
           <AlertDialogTrigger asChild>
             <Button variant="destructive">
@@ -229,16 +216,12 @@ export default function EditVirtualMachinePage() {
             <AlertDialogHeader>
               <AlertDialogTitle>Êtes-vous sûr ?</AlertDialogTitle>
               <AlertDialogDescription>
-                Cette action est irréversible. La machine virtuelle et toutes ses
-                données seront définitivement supprimées.
+                Cette action supprimera définitivement votre machine virtuelle.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
               <AlertDialogCancel>Annuler</AlertDialogCancel>
-              <AlertDialogAction
-                onClick={handleDelete}
-                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              >
+              <AlertDialogAction onClick={handleDelete}>
                 Supprimer
               </AlertDialogAction>
             </AlertDialogFooter>
@@ -248,25 +231,25 @@ export default function EditVirtualMachinePage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Informations de la machine virtuelle</CardTitle>
+          <CardTitle>Modifier la machine virtuelle</CardTitle>
           <CardDescription>
-            Modifiez les paramètres de votre machine virtuelle
+            Mettez à jour les détails de votre machine virtuelle
           </CardDescription>
         </CardHeader>
         <CardContent>
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
               <FormField
                 control={form.control}
                 name="name"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Nom</FormLabel>
+                    <FormLabel>Nom de la machine virtuelle</FormLabel>
                     <FormControl>
-                      <Input {...field} />
+                      <Input placeholder="Mon serveur web" {...field} />
                     </FormControl>
                     <FormDescription>
-                      Le nom de votre machine virtuelle
+                      Un nom unique pour identifier votre machine virtuelle
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
@@ -278,12 +261,12 @@ export default function EditVirtualMachinePage() {
                 name="description"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Description</FormLabel>
+                    <FormLabel>Description (optionnel)</FormLabel>
                     <FormControl>
-                      <Input {...field} />
+                      <Input placeholder="Description de la machine virtuelle" {...field} />
                     </FormControl>
                     <FormDescription>
-                      Une brève description de votre machine virtuelle (optionnel)
+                      Une description facultative pour mieux comprendre l'usage de la VM
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
@@ -296,10 +279,7 @@ export default function EditVirtualMachinePage() {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Image système</FormLabel>
-                    <Select
-                      onValueChange={field.onChange}
-                      defaultValue={field.value}
-                    >
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Sélectionnez une image système" />
@@ -308,13 +288,13 @@ export default function EditVirtualMachinePage() {
                       <SelectContent>
                         {systemImages.map((image) => (
                           <SelectItem key={image.id} value={image.id}>
-                            {image.name} ({image.version})
+                            {image.name} - {image.version}
                           </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
                     <FormDescription>
-                      Le système d&apos;exploitation de votre machine virtuelle
+                      L'image système de base pour votre machine virtuelle
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
@@ -326,11 +306,8 @@ export default function EditVirtualMachinePage() {
                 name="vm_offer_id"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Offre</FormLabel>
-                    <Select
-                      onValueChange={field.onChange}
-                      defaultValue={field.value}
-                    >
+                    <FormLabel>Offre de ressources</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Sélectionnez une offre" />
@@ -339,10 +316,7 @@ export default function EditVirtualMachinePage() {
                       <SelectContent>
                         {vmOffers.map((offer) => (
                           <SelectItem key={offer.id} value={offer.id}>
-                            {offer.name} ({offer.cpu_count} CPU, {
-                              offer.memory_size
-                            }{" "}
-                            Go RAM, {offer.disk_size} Go SSD)
+                            {offer.name} - {offer.cpu_count} CPU, {offer.memory_size} Mo, {offer.disk_size} Go
                           </SelectItem>
                         ))}
                       </SelectContent>

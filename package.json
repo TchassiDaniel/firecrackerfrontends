@@ -30,6 +30,7 @@
     "date-fns": "^4.1.0",
     "express": "^4.21.2",
     "firecracker-app": "file:",
+    "framer-motion": "^12.5.0",
     "jsonwebtoken": "^9.0.2",
     "lucide-react": "^0.475.0",
     "next": "15.1.7",

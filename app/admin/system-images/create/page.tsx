@@ -52,15 +52,8 @@ export default function CreateSystemImagePage() {
   const onSubmit = async (data: ImageFormValues) => {
     setIsUploading(true);
     try {
-      // Créer un FormData pour l'upload du fichier
       const formData = new FormData();
-      formData.append("name", data.name);
-      formData.append("description", data.description);
-      formData.append("version", data.version);
-      formData.append("kernel_version", data.kernel_version);
-      formData.append("architecture", data.architecture);
       formData.append("file", data.file);
-
       const response = await fetch("/api/admin/system-images", {
         method: "POST",
         body: formData,
