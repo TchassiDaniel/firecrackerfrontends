@@ -85,7 +85,7 @@ app.post('/api/auth/login', async (req, res) => {
   
   // Préparer la réponse
   res.json({
-    id: user.id,
+    id: parseInt(user.id),
     name: user.name,
     email: user.email,
     role: user.role
@@ -109,7 +109,7 @@ app.get('/api/auth/user', authenticateToken, async (req, res) => {
   }
   
   res.json({
-    id: user.id,
+    id: parseInt(user.id),
     name: user.name,
     email: user.email,
     role: user.role
@@ -148,7 +148,18 @@ app.get('/api/vms', authenticateToken, async (req, res) => {
     );
   }
 
-  res.json(vms);
+  res.json(vms.map(vm => ({
+    ...vm,
+    id: parseInt(vm.id),
+    user: {
+      ...vm.user,
+      id: parseInt(vm.user.id)
+    },
+    systemImage: {
+      ...vm.systemImage,
+      id: parseInt(vm.systemImage.id)
+    }
+  })));
 });
 
 // Récupérer une VM spécifique
@@ -166,7 +177,18 @@ app.get('/api/vms/:id', authenticateToken, async (req, res) => {
     return res.status(403).json({ message: 'Access denied' });
   }
   
-  res.json(vm);
+  res.json({
+    ...vm,
+    id: parseInt(vm.id),
+    user: {
+      ...vm.user,
+      id: parseInt(vm.user.id)
+    },
+    systemImage: {
+      ...vm.systemImage,
+      id: parseInt(vm.systemImage.id)
+    }
+  });
 });
 
 // Créer une nouvelle VM
@@ -252,7 +274,18 @@ app.post('/api/vms', authenticateToken, async (req, res) => {
   // Sauvegarder les modifications
   saveDb(db);
   
-  res.status(201).json(newVM);
+  res.status(201).json({
+    ...newVM,
+    id: parseInt(newVM.id),
+    user: {
+      ...newVM.user,
+      id: parseInt(newVM.user.id)
+    },
+    systemImage: {
+      ...newVM.systemImage,
+      id: parseInt(newVM.systemImage.id)
+    }
+  });
 });
 
 // Mettre à jour une VM
@@ -287,7 +320,18 @@ app.put('/api/vms/:id', authenticateToken, async (req, res) => {
   // Sauvegarder les modifications
   saveDb(db);
   
-  res.json(vm);
+  res.json({
+    ...vm,
+    id: parseInt(vm.id),
+    user: {
+      ...vm.user,
+      id: parseInt(vm.user.id)
+    },
+    systemImage: {
+      ...vm.systemImage,
+      id: parseInt(vm.systemImage.id)
+    }
+  });
 });
 
 // Supprimer une VM
@@ -378,7 +422,19 @@ app.post('/api/vms/:id/start', authenticateToken, async (req, res) => {
   // Sauvegarder les modifications
   saveDb(db);
   
-  res.json({ message: 'VM started successfully', vm });
+  res.json({
+    message: 'VM started successfully',
+    ...vm,
+    id: parseInt(vm.id),
+    user: {
+      ...vm.user,
+      id: parseInt(vm.user.id)
+    },
+    systemImage: {
+      ...vm.systemImage,
+      id: parseInt(vm.systemImage.id)
+    }
+  });
 });
 
 app.post('/api/vms/:id/stop', authenticateToken, async (req, res) => {
@@ -434,7 +490,19 @@ app.post('/api/vms/:id/stop', authenticateToken, async (req, res) => {
   // Sauvegarder les modifications
   saveDb(db);
   
-  res.json({ message: 'VM stopped successfully', vm });
+  res.json({
+    message: 'VM stopped successfully',
+    ...vm,
+    id: parseInt(vm.id),
+    user: {
+      ...vm.user,
+      id: parseInt(vm.user.id)
+    },
+    systemImage: {
+      ...vm.systemImage,
+      id: parseInt(vm.systemImage.id)
+    }
+  });
 });
 
 app.post('/api/vms/:id/pause', authenticateToken, async (req, res) => {
@@ -479,7 +547,19 @@ app.post('/api/vms/:id/pause', authenticateToken, async (req, res) => {
   // Sauvegarder les modifications
   saveDb(db);
   
-  res.json({ message: 'VM paused successfully', vm });
+  res.json({
+    message: 'VM paused successfully',
+    ...vm,
+    id: parseInt(vm.id),
+    user: {
+      ...vm.user,
+      id: parseInt(vm.user.id)
+    },
+    systemImage: {
+      ...vm.systemImage,
+      id: parseInt(vm.systemImage.id)
+    }
+  });
 });
 
 // Récupérer les logs d'une VM
@@ -517,7 +597,7 @@ app.get('/api/users', authenticateToken, async (req, res) => {
   if (req.user.role !== 'admin') {
     const user = db.users.find(u => u.id === req.user.id);
     return res.json([{
-      id: user.id,
+      id: parseInt(user.id),
       name: user.name,
       email: user.email,
       role: user.role
@@ -525,18 +605,55 @@ app.get('/api/users', authenticateToken, async (req, res) => {
   }
   
   res.json(db.users.map(u => ({
-    id: u.id,
+    id: parseInt(u.id),
     name: u.name,
     email: u.email,
     role: u.role
   })));
 });
 
-// Route pour les images système
+// Récupérer les images système
 app.get('/api/system-images', authenticateToken, async (req, res) => {
   await delay(500);
   const db = getDb();
-  res.json(db['system-images'] || []);
+  const images = db.systemImages || [];
+  
+  res.json(images.map(image => ({
+    ...image,
+    id: parseInt(image.id)
+  })));
+});
+
+// Route pour récupérer une image système par ID
+app.get('/api/system-images/:id', authenticateToken, async (req, res) => {
+  await delay(500);
+  const db = getDb();
+  const image = db.systemImages.find(img => img.id === req.params.id);
+  
+  if (!image) {
+    return res.status(404).json({ message: 'Image système non trouvée' });
+  }
+  
+  res.json({
+    ...image,
+    id: parseInt(image.id)
+  });
+});
+
+// Récupérer les modèles de VMs
+app.get('/api/vm_models', authenticateToken, async (req, res) => {
+  await delay(500);
+  const db = getDb();
+  const models = db.vmModels || [];
+  
+  res.json(models.map(model => ({
+    ...model,
+    id: parseInt(model.id),
+    cpu: parseInt(model.cpu),
+    ram: parseInt(model.ram),
+    storage: parseInt(model.storage),
+    price_per_hour: parseFloat(model.price_per_hour)
+  })));
 });
 
 // Démarrer le serveur
@@ -558,4 +675,6 @@ app.listen(port, () => {
   console.log('\x1b[33m%s\x1b[0m', '  GET    /api/vms/:id/logs');
   console.log('\x1b[33m%s\x1b[0m', '  GET    /api/users');
   console.log('\x1b[33m%s\x1b[0m', '  GET    /api/system-images');
+  console.log('\x1b[33m%s\x1b[0m', '  GET    /api/system-images/:id');
+  console.log('\x1b[33m%s\x1b[0m', '  GET    /api/vm_models');
 });
