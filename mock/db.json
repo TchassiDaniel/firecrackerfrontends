@@ -8,7 +8,7 @@
       "role": "admin"
     },
     {
-      "id": "2",
+      "id": "4",
       "name": "f",
       "email": "ft@gmail.com",
       "password": "123456789",
@@ -36,6 +36,32 @@
       "role": "admin"
     }
   ],
+  "systemImages": [
+    {
+      "id": "1",
+      "name": "Ubuntu 22.04 LTS",
+      "version": "22.04",
+      "description": "Ubuntu 22.04 LTS (Jammy Jellyfish)",
+      "size_gb": 2,
+      "created_at": "2024-01-01T00:00:00Z"
+    },
+    {
+      "id": "2",
+      "name": "Debian",
+      "version": "11",
+      "description": "Debian 11 (Bullseye)",
+      "size_gb": 1.8,
+      "created_at": "2024-01-02T00:00:00Z"
+    },
+    {
+      "id": "3",
+      "name": "Alpine Linux",
+      "version": "3.18",
+      "description": "Alpine Linux 3.18",
+      "size_gb": 0.5,
+      "created_at": "2024-01-03T00:00:00Z"
+    }
+  ],
   "vms": [
     {
       "id": "1",
@@ -43,33 +69,45 @@
       "status": "running",
       "vcpu_count": 2,
       "memory_size_mib": 2048,
+      "description": "Machine virtuelle de test 1",
       "disk_size_gb": 20,
       "created_at": "2024-02-25T10:00:00Z",
       "ip_address": "192.168.1.100",
       "mac_address": "00:11:22:33:44:55",
       "tap_device_name": "tap0",
       "tap_ip": "192.168.1.1",
+      "ssh_port": 22,
       "user": {
         "id": "1",
-        "name": "John Doe",
-        "email": "john@example.com"
+        "name": "wandji emmanuel",
+        "email": "wandjilegentia@gmail.com"
       },
       "systemImage": {
         "id": "1",
-        "name": "Ubuntu 22.04 LTS"
+        "name": "Ubuntu 22.04 LTS",
+        "version": "22.04",
+        "description": "Ubuntu 22.04 LTS (Jammy Jellyfish)",
+        "size_gb": 2,
+        "created_at": "2024-01-01T00:00:00Z"
       },
-      "vmOffer": {
+      "vmModels": {
         "id": "1",
-        "name": "Standard"
+        "distribution_name": "Ubuntu Basic",
+        "cpu": 1,
+        "ram": 1024,
+        "storage": 20,
+        "kernel_base_path": "/images/ubuntu/vmlinux.bin",
+        "rootfs_base_path": "/images/ubuntu/ubuntu.ext4",
+        "rootfs_download_url": "https://storage.googleapis.com/firecracker-images/ubuntu-20.04"
       },
       "metrics": {
-        "cpu_usage": 45,
-        "memory_usage": 60,
-        "disk_usage": 30,
-        "network_rx_bytes": 1024000,
-        "network_tx_bytes": 512000,
-        "disk_read_bytes": 2048000,
-        "disk_write_bytes": 1024000
+        "cpu_usage": 58,
+        "memory_usage": 46,
+        "disk_usage": 10,
+        "network_rx_bytes": 421647,
+        "network_tx_bytes": 245364,
+        "disk_read_bytes": 1529369,
+        "disk_write_bytes": 781740
       }
     },
     {
@@ -78,29 +116,41 @@
       "status": "stopped",
       "vcpu_count": 4,
       "memory_size_mib": 4096,
+      "description": "Machine virtuelle de test 2",
       "disk_size_gb": 40,
       "created_at": "2024-02-24T15:30:00Z",
       "ip_address": "192.168.1.101",
       "mac_address": "00:11:22:33:44:66",
       "tap_device_name": "tap1",
       "tap_ip": "192.168.1.2",
+      "ssh_port": 22,
       "user": {
         "id": "2",
-        "name": "Jane Smith",
-        "email": "jane@example.com"
+        "name": "donchi",
+        "email": "donchi@gmail.com"
       },
       "systemImage": {
         "id": "2",
-        "name": "Debian 11"
+        "name": "Debian",
+        "version": "11",
+        "description": "Debian 11 (Bullseye)",
+        "size_gb": 1.8,
+        "created_at": "2024-01-02T00:00:00Z"
       },
-      "vmOffer": {
+      "vmModels": {
         "id": "2",
-        "name": "Premium"
+        "distribution_name": "Ubuntu Standard",
+        "cpu": 2,
+        "ram": 2048,
+        "storage": 40,
+        "kernel_base_path": "/images/ubuntu/vmlinux.bin",
+        "rootfs_base_path": "/images/ubuntu/ubuntu.ext4",
+        "rootfs_download_url": "https://storage.googleapis.com/firecracker-images/ubuntu-20.04"
       },
       "metrics": {
         "cpu_usage": 0,
         "memory_usage": 0,
-        "disk_usage": 25,
+        "disk_usage": 12,
         "network_rx_bytes": 0,
         "network_tx_bytes": 0,
         "disk_read_bytes": 0,
@@ -137,6 +187,16 @@
           "timestamp": "2024-02-25T12:00:05Z",
           "level": "info",
           "message": "Network interface configured"
+        },
+        {
+          "timestamp": "2025-03-26T08:20:05.983Z",
+          "level": "info",
+          "message": "VM stopped successfully"
+        },
+        {
+          "timestamp": "2025-03-26T08:20:12.463Z",
+          "level": "info",
+          "message": "VM started successfully"
         }
       ]
     },
@@ -154,6 +214,48 @@
           "message": "VM stopped by user"
         }
       ]
+    }
+  ],
+  "vmModels": [
+    {
+      "id": "1",
+      "distribution_name": "Ubuntu Basic",
+      "cpu": 1,
+      "ram": 1024,
+      "storage": 20,
+      "kernel_base_path": "/images/ubuntu/vmlinux.bin",
+      "rootfs_base_path": "/images/ubuntu/ubuntu.ext4",
+      "rootfs_download_url": "https://storage.googleapis.com/firecracker-images/ubuntu-20.04"
+    },
+    {
+      "id": "2",
+      "distribution_name": "Ubuntu Standard",
+      "cpu": 2,
+      "ram": 2048,
+      "storage": 40,
+      "kernel_base_path": "/images/ubuntu/vmlinux.bin",
+      "rootfs_base_path": "/images/ubuntu/ubuntu.ext4",
+      "rootfs_download_url": "https://storage.googleapis.com/firecracker-images/ubuntu-20.04"
+    },
+    {
+      "id": "3",
+      "distribution_name": "Ubuntu Performance",
+      "cpu": 4,
+      "ram": 4096,
+      "storage": 80,
+      "kernel_base_path": "/images/ubuntu/vmlinux.bin",
+      "rootfs_base_path": "/images/ubuntu/ubuntu.ext4",
+      "rootfs_download_url": "https://storage.googleapis.com/firecracker-images/ubuntu-20.04"
+    },
+    {
+      "id": "4",
+      "distribution_name": "Ubuntu Premium",
+      "cpu": 8,
+      "ram": 8192,
+      "storage": 160,
+      "kernel_base_path": "/images/ubuntu/vmlinux.bin",
+      "rootfs_base_path": "/images/ubuntu/ubuntu.ext4",
+      "rootfs_download_url": "https://storage.googleapis.com/firecracker-images/ubuntu-20.04"
     }
   ]
 }

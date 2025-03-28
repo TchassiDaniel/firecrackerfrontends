@@ -14,19 +14,17 @@ import {
 import { Terminal } from "xterm";
 import { FitAddon } from "xterm-addon-fit";
 import "xterm/css/xterm.css";
-
-interface VirtualMachine {
-  id: string;
-  name: string;
-  status: "running" | "stopped";
-  ip_address: string | null;
-  ssh_port: number | null;
-}
+import { useVirtualMachines } from "@/hooks/useVirtualMachines";
+import { useAuth } from "@/hooks/useAuth";
+import { VirtualMachine } from "@/types/virtualMachine";
 
 export default function TerminalPage() {
   const { id } = useParams();
   const router = useRouter();
   const { toast } = useToast();
+  const { user } = useAuth();
+  const { virtualMachines, fetchVirtualMachineById } = useVirtualMachines();
+
   const [vm, setVM] = useState<VirtualMachine | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isConnected, setIsConnected] = useState(false);
@@ -34,12 +32,15 @@ export default function TerminalPage() {
   const terminalInstance = useRef<Terminal | null>(null);
   const wsRef = useRef<WebSocket | null>(null);
 
+  // 🔹 Récupération de la VM
   useEffect(() => {
-    const fetchVM = async () => {
+    if (!id) return;
+
+    const loadVM = async () => {
+      setIsLoading(true);
       try {
-        const response = await fetch(`/api/virtual-machines/${id}`);
-        if (!response.ok) throw new Error("Erreur lors du chargement de la VM");
-        const data = await response.json();
+       
+        const data = await fetchVirtualMachineById(id as string);
         setVM(data);
       } catch (error) {
         toast({
@@ -53,13 +54,13 @@ export default function TerminalPage() {
       }
     };
 
-    fetchVM();
-  }, [id, router, toast]);
+    loadVM();
+  }, [id, fetchVirtualMachineById, toast, router]);
 
+  // 🔹 Initialisation du terminal et WebSocket
   useEffect(() => {
     if (!terminalRef.current || vm?.status !== "running") return;
 
-    // Initialisation du terminal
     const term = new Terminal({
       cursorBlink: true,
       fontSize: 14,
@@ -79,19 +80,14 @@ export default function TerminalPage() {
 
     terminalInstance.current = term;
 
-    // Connexion WebSocket
-    const ws = new WebSocket(
-      `ws://${window.location.host}/api/terminal/${id}`
-    );
+    const ws = new WebSocket(`ws://${window.location.host}/api/terminal/${id}`);
 
     ws.onopen = () => {
       setIsConnected(true);
       term.write("\r\n🔌 Connecté au terminal SSH\r\n\n");
     };
 
-    ws.onmessage = (event) => {
-      term.write(event.data);
-    };
+    ws.onmessage = (event) => term.write(event.data);
 
     ws.onclose = () => {
       setIsConnected(false);
@@ -131,16 +127,14 @@ export default function TerminalPage() {
 
     return () => {
       term.dispose();
-      if (ws.readyState === WebSocket.OPEN) {
-        ws.close();
-      }
+      if (ws.readyState === WebSocket.OPEN) ws.close();
       window.removeEventListener("resize", handleResize);
     };
   }, [vm, id, toast]);
 
+  // 🔹 Copier la commande SSH
   const copySSHCommand = () => {
     if (!vm?.ip_address || !vm?.ssh_port) return;
-
     const command = `ssh -p ${vm.ssh_port} user@${vm.ip_address}`;
     navigator.clipboard.writeText(command);
 
@@ -150,6 +144,7 @@ export default function TerminalPage() {
     });
   };
 
+  // 🔹 Chargement
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -164,10 +159,7 @@ export default function TerminalPage() {
     <div className="container mx-auto px-4 py-8">
       <div className="flex justify-between items-center mb-6">
         <div className="flex items-center gap-4">
-          <Button
-            variant="outline"
-            onClick={() => router.push(`/dashboard/${id}`)}
-          >
+          <Button variant="outline" onClick={() => router.push(`/dashboard/${id}`)}>
             <ArrowLeft className="mr-2 h-4 w-4" />
             Retour
           </Button>
@@ -177,11 +169,7 @@ export default function TerminalPage() {
           </div>
         </div>
         <div className="flex gap-2">
-          <Button
-            variant="outline"
-            onClick={copySSHCommand}
-            disabled={!vm.ip_address || !vm.ssh_port}
-          >
+          <Button variant="outline" onClick={copySSHCommand} disabled={!vm.ip_address || !vm.ssh_port}>
             <Copy className="mr-2 h-4 w-4" />
             Copier la commande SSH
           </Button>
@@ -196,11 +184,7 @@ export default function TerminalPage() {
               <h2 className="text-xl font-semibold">Console</h2>
             </div>
             <div className="flex items-center gap-2">
-              <div
-                className={`w-2 h-2 rounded-full ${
-                  isConnected ? "bg-green-500" : "bg-red-500"
-                }`}
-              />
+              <div className={`w-2 h-2 rounded-full ${isConnected ? "bg-green-500" : "bg-red-500"}`} />
               <span className="text-sm text-muted-foreground">
                 {isConnected ? "Connecté" : "Déconnecté"}
               </span>
@@ -209,10 +193,7 @@ export default function TerminalPage() {
         </CardHeader>
         <CardContent>
           {vm.status === "running" ? (
-            <div
-              ref={terminalRef}
-              className="h-[500px] rounded-lg overflow-hidden bg-[#1a1b1e]"
-            />
+            <div ref={terminalRef} className="h-[500px] rounded-lg overflow-hidden bg-[#1a1b1e]" />
           ) : (
             <div className="h-[500px] flex items-center justify-center bg-muted rounded-lg">
               <div className="text-center">

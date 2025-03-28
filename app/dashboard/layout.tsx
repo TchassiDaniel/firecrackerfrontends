@@ -18,10 +18,10 @@ useEffect(() => {
 
   if (!loading && !user) {
     // Ajouter un délai pour permettre au token de se configurer
-    console.log("aucun utilisateur dans useauth vous serez rediriger vers le login")
+    console.log("aucun utilisateur dans useauth vous serez rediriger vers le login");
     setTimeout(() => {
       router.push('/auth/login');
-    }, 5000);
+    }, 5000); // Redirecting to login after 5 seconds
   }
 }, [user, loading, router]);
 

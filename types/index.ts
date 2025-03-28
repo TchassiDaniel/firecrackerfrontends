@@ -1,1 +1,0 @@
-// Fichier types/index.ts 

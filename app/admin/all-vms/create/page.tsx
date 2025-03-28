@@ -71,18 +71,9 @@ export default function CreateVmPage() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // Charger la liste des images système
         const imagesResponse = await fetch("/api/admin/system-images");
-        if (!imagesResponse.ok) throw new Error("Erreur lors du chargement des images");
         const imagesData = await imagesResponse.json();
-        
-        // Charger la liste des utilisateurs
-        const usersResponse = await fetch("/api/admin/users");
-        if (!usersResponse.ok) throw new Error("Erreur lors du chargement des utilisateurs");
-        const usersData = await usersResponse.json();
-        
         setSystemImages(imagesData);
-        setUsers(usersData);
       } catch (error) {
         toast({
           variant: "destructive",
