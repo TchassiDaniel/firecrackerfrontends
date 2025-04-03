@@ -1,26 +1,23 @@
 // lib/api/client.ts
 import axios from 'axios';
 
-// Types de services disponibles
-export type ServiceType = 'AUTH_SERVICE' | 'USER_SERVICE' | 'VM_SERVICE' | 'NOTIFICATION_SERVICE';
+export type ServiceType = 'AUTH_SERVICE' | 'USER_SERVICE' | 'VM_SERVICE' | 'NOTIFICATION_SERVICE' | 'SYSTEM_IMAGES_SERVICE';
 
 interface ServiceConfig {
   baseURL: string;
   timeout: number;
 }
 
-// Détecter l'environnement de développement
 const isDevelopment = process.env.NODE_ENV === 'development';
 
-// Configuration des URLs des services
 const serviceUrls = {
   AUTH_SERVICE: process.env.NEXT_PUBLIC_AUTH_SERVICE_URL || '',
   USER_SERVICE: process.env.NEXT_PUBLIC_USER_SERVICE_URL || '',
   VM_SERVICE: process.env.NEXT_PUBLIC_VM_SERVICE_URL || '',
   NOTIFICATION_SERVICE: process.env.NEXT_PUBLIC_NOTIFICATION_SERVICE_URL || '',
+  SYSTEM_IMAGES_SERVICE: process.env.NEXT_PUBLIC_SYSTEM_IMAGES_SERVICE_URL || '',
 };
 
-// Configuration des services
 const SERVICE_CONFIG: Record<ServiceType, ServiceConfig> = {
   AUTH_SERVICE: {
     baseURL: serviceUrls.AUTH_SERVICE || '',
@@ -32,30 +29,31 @@ const SERVICE_CONFIG: Record<ServiceType, ServiceConfig> = {
   },
   VM_SERVICE: {
     baseURL: serviceUrls.VM_SERVICE || '',
-    timeout: 10000, // Timeout plus long pour les opérations VM
+    timeout: 10000,
   },
   NOTIFICATION_SERVICE: {
     baseURL: serviceUrls.NOTIFICATION_SERVICE || '',
-    timeout: 3000,
+    timeout: 5000,
+  },
+  SYSTEM_IMAGES_SERVICE: {
+    baseURL: serviceUrls.SYSTEM_IMAGES_SERVICE || '',
+    timeout: 5000,
   },
 };
 
-// Créer une instance axios avec la configuration par défaut
 const createClient = (serviceType: ServiceType) => {
   const config = SERVICE_CONFIG[serviceType];
   return axios.create({
     ...config,
-    withCredentials: true, // Important pour les cookies
+    withCredentials: true,
     headers: {
       'Content-Type': 'application/json',
     },
   });
 };
 
-// Map pour stocker les instances de client
 const clientInstances: Map<ServiceType, ReturnType<typeof createClient>> = new Map();
 
-// Fonction pour obtenir un client de service
 export const getServiceClient = (serviceType: ServiceType) => {
   if (!clientInstances.has(serviceType)) {
     clientInstances.set(serviceType, createClient(serviceType));

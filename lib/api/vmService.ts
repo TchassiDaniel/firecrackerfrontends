@@ -34,7 +34,7 @@ class VMService {
   }
   
   // Récupérer une VM spécifique
-  async getVM(id: string) {
+  async getVM(id: number) {
     const client = getServiceClient('VM_SERVICE');
     const url = API_ENDPOINTS.VIRTUAL_MACHINES.endpoints.GET(id);
     const response = await client.get(url);
@@ -50,7 +50,7 @@ class VMService {
   }
   
   // Mettre à jour une VM
-  async updateVM(id: string, vmData: UpdateVMPayload) {
+  async updateVM(id: number, vmData: UpdateVMPayload) {
     const client = getServiceClient('VM_SERVICE');
     const url = API_ENDPOINTS.VIRTUAL_MACHINES.endpoints.UPDATE(id);
     const response = await client.put(url, vmData);
@@ -58,7 +58,7 @@ class VMService {
   }
   
   // Supprimer une VM
-  async deleteVM(id: string) {
+  async deleteVM(id: number) {
     const client = getServiceClient('VM_SERVICE');
     const url = API_ENDPOINTS.VIRTUAL_MACHINES.endpoints.DELETE(id);
     const response = await client.delete(url);
@@ -66,21 +66,21 @@ class VMService {
   }
   
   // lancer une vm
-  async startVM(id: string) {
+  async startVM(id: number) {
     const client = getServiceClient('VM_SERVICE');
     const url = API_ENDPOINTS.VIRTUAL_MACHINES.endpoints.START(id);
     const response = await client.post(url);
     return response.data;
   }
   //arreter une vm 
-  async stopVM(id: string) {
+  async stopVM(id: number) {
     const client = getServiceClient('VM_SERVICE');
     const url = API_ENDPOINTS.VIRTUAL_MACHINES.endpoints.STOP(id);
     const response = await client.post(url);
     return response.data;
   }
   //mettre en pause une vm
-  async pauseVM(id: string) {
+  async pauseVM(id: number) {
     const client = getServiceClient('VM_SERVICE');
     const url = API_ENDPOINTS.VIRTUAL_MACHINES.endpoints.PAUSE(id);
     const response = await client.post(url);
@@ -88,7 +88,7 @@ class VMService {
   }
   
   // Récupérer les logs d'une VM
-  async getVMLogs(id: string) {
+  async getVMLogs(id: number) {
     const client = getServiceClient('VM_SERVICE');
     const url = `${API_ENDPOINTS.VIRTUAL_MACHINES.endpoints.GET(id)}/logs`;
     const response = await client.get(url);

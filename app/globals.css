@@ -14,6 +14,15 @@
   }
 }
 
+@keyframes shine {
+  0% {
+    transform: translateX(-100%) skewX(45deg);
+  }
+  100% {
+    transform: translateX(200%) skewX(45deg);
+  }
+}
+
 body {
   color: var(--foreground);
   background: var(--background);

@@ -1,17 +1,22 @@
-// Fichier app/virtual-machines/page.tsx 
-
 "use client";
 
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { useEffect } from "react";
+import Link from "next/link";
+import { 
+  Plus, 
+  Power, 
+  Pause, 
+  Trash2, 
+  ExternalLink,
+  Server,
+  MemoryStick,
+  HardDrive,
+  Cpu,
+  Globe,
+  MoreVertical 
+} from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -19,376 +24,311 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
+  DropdownMenuSeparator
 } from "@/components/ui/dropdown-menu";
-import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { useToast } from "@/components/ui/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
-import {
-  Plus,
-  MoreVertical,
-  Search,
-  RefreshCw,
-  Power,
-  PowerOff,
-  Terminal,
-  Settings,
-  Trash2,
-} from "lucide-react";
-import { format } from "date-fns";
-import { fr } from "date-fns/locale";
+import { useVirtualMachines } from "@/hooks/useVirtualMachines";
+import { Badge } from "@/components/ui/badge";
+import { useAuth } from "@/hooks/useAuth";
 
-interface VirtualMachine {
-  id: string;
-  name: string;
-  status: "running" | "stopped" | "error";
-  ip_address: string | null;
-  created_at: string;
-  system_image: {
-    name: string;
-    version: string;
+const fadeInUp = {
+  initial: { opacity: 0, y: 20 },
+  animate: { opacity: 1, y: 0 },
+  exit: { opacity: 0, y: -20 }
+};
+
+const StatusBadge = ({ status }: { status: string }) => {
+  const getStatusColor = (status: string) => {
+    switch (status.toLowerCase()) {
+      case 'running':
+        return 'bg-green-100 text-green-800 border-green-300';
+      case 'stopped':
+        return 'bg-red-100 text-red-800 border-red-300';
+      case 'paused':
+        return 'bg-yellow-100 text-yellow-800 border-yellow-300';
+      default:
+        return 'bg-gray-100 text-gray-800 border-gray-300';
+    }
   };
-  vm_offer: {
-    name: string;
-    cpu_count: number;
-    memory_size: number;
-    disk_size: number;
-  };
-}
+
+  return (
+    <span className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(status)}`}>
+      {status}
+    </span>
+  );
+};
 
 export default function VirtualMachinesPage() {
-  const router = useRouter();
+  const { user } = useAuth();
   const { toast } = useToast();
-  const [isLoading, setIsLoading] = useState(true);
-  const [virtualMachines, setVirtualMachines] = useState<VirtualMachine[]>([]);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState<string>("all");
-
-  const fetchVirtualMachines = async () => {
-    try {
-      const response = await fetch("/api/virtual-machines");
-      if (!response.ok) throw new Error("Erreur lors du chargement des données");
-      const data = await response.json();
-      setVirtualMachines(data);
-    } catch (error) {
-      toast({
-        variant: "destructive",
-        title: "Erreur",
-        description: "Impossible de charger les machines virtuelles",
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  const {
+    virtualMachines,
+    userVirtualMachines,
+    isLoading,
+    error,
+    fetchUserVirtualMachines,
+    updateVirtualMachineStatus,
+    deleteVirtualMachine,
+  } = useVirtualMachines();
 
   useEffect(() => {
-    fetchVirtualMachines();
-  }, []);
+    if (user?.id) {
+      const userId = typeof user.id === 'string' ? parseInt(user.id, 10) : user.id;
+      if (!isNaN(userId)) {
+        fetchUserVirtualMachines(userId);
+      }
+    }
+  }, [user, fetchUserVirtualMachines]);
 
-  const handleAction = async (vmId: string, action: string) => {
+  const handleAction = async (vmId: number, action: "start" | "stop" | "pause") => {
     try {
-      const response = await fetch(`/api/virtual-machines/${vmId}/${action}`, {
-        method: "POST",
-      });
-
-      if (!response.ok) throw new Error(`Erreur lors de l'action ${action}`);
-
+      await updateVirtualMachineStatus(vmId, action);
       toast({
-        title: "Succès",
-        description: `Action ${action} effectuée avec succès`,
+        title: "Action réussie",
+        description: (
+          <div className="flex flex-col gap-2">
+            <div className="flex items-center gap-2">
+              <Power className="w-4 h-4 text-green-500" />
+              <span>L'action a été effectuée avec succès</span>
+            </div>
+            <p>
+              Machine virtuelle {action === 'start' ? 'démarrée' : action === 'stop' ? 'arrêtée' : 'mise en pause'}
+            </p>
+          </div>
+        ),
+        className: "bg-white border-l-4 border-l-green-500",
       });
-
-      fetchVirtualMachines();
     } catch (error) {
       toast({
-        variant: "destructive",
         title: "Erreur",
-        description: `Impossible d'effectuer l'action ${action}`,
+        description: "Une erreur est survenue lors de la modification de l'état",
+        variant: "destructive",
       });
     }
   };
 
-  const handleDelete = async (vmId: string) => {
+  const handleDelete = async (vmId: number) => {
     try {
-      const response = await fetch(`/api/virtual-machines/${vmId}`, {
-        method: "DELETE",
-      });
-
-      if (!response.ok) throw new Error("Erreur lors de la suppression");
-
+      await deleteVirtualMachine(vmId);
       toast({
-        title: "Succès",
-        description: "Machine virtuelle supprimée avec succès",
+        title: "Machine supprimée",
+        description: "La machine virtuelle a été supprimée avec succès",
+        className: "bg-white border-l-4 border-l-green-500",
       });
-
-      fetchVirtualMachines();
     } catch (error) {
       toast({
-        variant: "destructive",
         title: "Erreur",
         description: "Impossible de supprimer la machine virtuelle",
+        variant: "destructive",
       });
-    }
-  };
-
-  const filteredVMs = virtualMachines.filter((vm) => {
-    const matchesSearch =
-      vm.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      vm.system_image.name.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesStatus =
-      statusFilter === "all" || vm.status === statusFilter;
-    return matchesSearch && matchesStatus;
-  });
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "running":
-        return "text-green-500";
-      case "stopped":
-        return "text-gray-500";
-      case "error":
-        return "text-red-500";
-      default:
-        return "text-gray-500";
-    }
-  };
-
-  const getStatusText = (status: string) => {
-    switch (status) {
-      case "running":
-        return "En cours d'exécution";
-      case "stopped":
-        return "Arrêtée";
-      case "error":
-        return "Erreur";
-      default:
-        return status;
     }
   };
 
   if (isLoading) {
     return (
-      <div className="container mx-auto px-4 py-8">
-        <div className="space-y-6">
-          <Skeleton className="h-8 w-64" />
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {[...Array(3)].map((_, i) => (
-              <Skeleton key={i} className="h-32" />
-            ))}
-          </div>
-          <Card>
-            <CardHeader>
-              <Skeleton className="h-6 w-48" />
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {[...Array(5)].map((_, i) => (
-                  <Skeleton key={i} className="h-12 w-full" />
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+      <div className="container mx-auto p-8">
+        <motion.div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {[...Array(6)].map((_, i) => (
+            <motion.div
+              key={i}
+              variants={fadeInUp}
+              initial="initial"
+              animate="animate"
+              custom={i}
+            >
+              <Card className="relative overflow-hidden">
+                <div className="absolute inset-0 bg-gradient-to-r from-blue-100 to-purple-100 animate-pulse" />
+                <CardHeader className="relative">
+                  <Skeleton className="h-6 w-48" />
+                  <Skeleton className="h-4 w-32 mt-2" />
+                </CardHeader>
+                <CardContent className="relative">
+                  <div className="space-y-4">
+                    {[...Array(4)].map((_, j) => (
+                      <Skeleton key={j} className="h-4 w-full" />
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
+          ))}
+        </motion.div>
       </div>
     );
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">Machines Virtuelles</h1>
-        <Button onClick={() => router.push("/virtual-machines/create")}>
-          <Plus className="mr-2 h-4 w-4" />
-          Nouvelle VM
-        </Button>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>Total</CardTitle>
-            <CardDescription>Nombre total de VMs</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <p className="text-3xl font-bold">{virtualMachines.length}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle>En cours d&apos;exécution</CardTitle>
-            <CardDescription>VMs actives</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <p className="text-3xl font-bold text-green-500">
-              {
-                virtualMachines.filter((vm) => vm.status === "running")
-                  .length
-              }
+    <div className="container mx-auto p-8">
+      <motion.div
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="mb-8"
+      >
+        <div className="flex justify-between items-center">
+          <div>
+            <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+              Machines Virtuelles
+            </h1>
+            <p className="text-gray-500 mt-2">
+              Gérez vos machines virtuelles Firecracker
             </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle>Arrêtées</CardTitle>
-            <CardDescription>VMs inactives</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <p className="text-3xl font-bold text-gray-500">
-              {
-                virtualMachines.filter((vm) => vm.status === "stopped")
-                  .length
-              }
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Liste des machines virtuelles</CardTitle>
-          <div className="flex flex-col sm:flex-row gap-4">
-            <div className="relative flex-1">
-              <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Rechercher une VM..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-8"
-              />
-            </div>
-            <Select
-              value={statusFilter}
-              onValueChange={setStatusFilter}
-            >
-              <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Filtrer par statut" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Tous les statuts</SelectItem>
-                <SelectItem value="running">En cours d&apos;exécution</SelectItem>
-                <SelectItem value="stopped">Arrêtées</SelectItem>
-                <SelectItem value="error">En erreur</SelectItem>
-              </SelectContent>
-            </Select>
-            <Button
-              variant="outline"
-              onClick={fetchVirtualMachines}
-              className="w-full sm:w-auto"
-            >
-              <RefreshCw className="mr-2 h-4 w-4" />
-              Actualiser
+          </div>
+          <Link href="/virtual-machines/create">
+            <Button className="bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 transition-all duration-300">
+              <Plus className="mr-2 h-4 w-4" />
+              Nouvelle VM
             </Button>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="rounded-md border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Nom</TableHead>
-                  <TableHead>Image système</TableHead>
-                  <TableHead>Configuration</TableHead>
-                  <TableHead>Statut</TableHead>
-                  <TableHead>IP</TableHead>
-                  <TableHead>Créée le</TableHead>
-                  <TableHead className="w-[100px]">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredVMs.map((vm) => (
-                  <TableRow key={vm.id}>
-                    <TableCell className="font-medium">{vm.name}</TableCell>
-                    <TableCell>
-                      {vm.system_image.name} ({vm.system_image.version})
-                    </TableCell>
-                    <TableCell>
-                      {vm.vm_offer.cpu_count} CPU, {vm.vm_offer.memory_size} Go
-                      RAM, {vm.vm_offer.disk_size} Go SSD
-                    </TableCell>
-                    <TableCell>
-                      <span className={getStatusColor(vm.status)}>
-                        {getStatusText(vm.status)}
-                      </span>
-                    </TableCell>
-                    <TableCell>{vm.ip_address || "-"}</TableCell>
-                    <TableCell>
-                      {format(new Date(vm.created_at), "dd MMM yyyy", {
-                        locale: fr,
-                      })}
-                    </TableCell>
-                    <TableCell>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" className="h-8 w-8 p-0">
-                            <MoreVertical className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                          <DropdownMenuSeparator />
-                          {vm.status === "running" ? (
-                            <DropdownMenuItem
-                              onClick={() => handleAction(vm.id, "stop")}
-                            >
-                              <PowerOff className="mr-2 h-4 w-4" />
-                              Arrêter
-                            </DropdownMenuItem>
-                          ) : (
-                            <DropdownMenuItem
+          </Link>
+        </div>
+      </motion.div>
+
+      <AnimatePresence>
+        {!userVirtualMachines || userVirtualMachines.length === 0 ? (
+          <motion.div
+            variants={fadeInUp}
+            initial="initial"
+            animate="animate"
+            exit="exit"
+          >
+            <Card className="border-dashed border-2 border-gray-200">
+              <CardHeader>
+                <CardTitle className="text-center text-2xl text-gray-600">
+                  <Server className="w-12 h-12 mx-auto mb-4 text-gray-400" />
+                  Aucune machine virtuelle
+                </CardTitle>
+                <CardDescription className="text-center">
+                  Commencez par créer votre première machine virtuelle
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="flex justify-center">
+                <Link href="/virtual-machines/create">
+                  <Button className="bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600">
+                    <Plus className="mr-2 h-4 w-4" />
+                    Créer ma première VM
+                  </Button>
+                </Link>
+              </CardContent>
+            </Card>
+          </motion.div>
+        ) : (
+          <motion.div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {userVirtualMachines.map((vm, index) => (
+              <motion.div
+                key={vm.id}
+                variants={fadeInUp}
+                initial="initial"
+                animate="animate"
+                exit="exit"
+                custom={index}
+              >
+                <Card className="group hover:shadow-xl transition-all duration-300 bg-gradient-to-br from-white to-gray-50 border border-gray-200 hover:border-blue-200 relative overflow-hidden">
+                  <div className="absolute inset-0 bg-gradient-to-br from-blue-50/50 to-purple-50/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                  <CardHeader className="pb-2 relative">
+                    <div className="flex justify-between items-start space-x-4">
+                      <div className="flex items-center gap-2">
+                        <div className="p-2 rounded-lg bg-blue-50 text-blue-500">
+                          <Server className="w-5 h-5" />
+                        </div>
+                        <div>
+                          <h2 className="text-xl font-bold text-gray-800">{vm.name}</h2>
+                          <p className="text-sm text-gray-500 mt-1">ID: {vm.id}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <StatusBadge status={vm.status} />
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0 hover:bg-gray-100 rounded-full">
+                              <MoreVertical className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="w-48">
+                            <DropdownMenuItem 
                               onClick={() => handleAction(vm.id, "start")}
+                              className="hover:bg-green-50 cursor-pointer"
                             >
-                              <Power className="mr-2 h-4 w-4" />
-                              Démarrer
+                              <Power className="mr-2 h-4 w-4 text-green-500" />
+                              <span>Démarrer</span>
                             </DropdownMenuItem>
-                          )}
-                          <DropdownMenuItem
-                            onClick={() =>
-                              router.push(`/virtual-machines/${vm.id}/terminal`)
-                            }
-                          >
-                            <Terminal className="mr-2 h-4 w-4" />
-                            Terminal SSH
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            onClick={() =>
-                              router.push(`/virtual-machines/${vm.id}/edit`)
-                            }
-                          >
-                            <Settings className="mr-2 h-4 w-4" />
-                            Modifier
-                          </DropdownMenuItem>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem
-                            className="text-red-600"
-                            onClick={() => handleDelete(vm.id)}
-                          >
-                            <Trash2 className="mr-2 h-4 w-4" />
-                            Supprimer
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-        </CardContent>
-      </Card>
+                            <DropdownMenuItem 
+                              onClick={() => handleAction(vm.id, "stop")}
+                              className="hover:bg-red-50 cursor-pointer"
+                            >
+                              <Power className="mr-2 h-4 w-4 text-red-500" />
+                              <span>Arrêter</span>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem 
+                              onClick={() => handleAction(vm.id, "pause")}
+                              className="hover:bg-yellow-50 cursor-pointer"
+                            >
+                              <Pause className="mr-2 h-4 w-4 text-yellow-500" />
+                              <span>Mettre en pause</span>
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem 
+                              onClick={() => handleDelete(vm.id)}
+                              className="hover:bg-red-50 cursor-pointer"
+                            >
+                              <Trash2 className="mr-2 h-4 w-4 text-red-500" />
+                              <span>Supprimer</span>
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="relative">
+                    <div className="grid grid-cols-2 gap-3 mt-4">
+                      <div className="flex items-center gap-3 p-3 rounded-xl bg-white border border-gray-100 hover:border-blue-200 transition-colors duration-200 group/stat">
+                        <div className="p-2 rounded-lg bg-blue-50 text-blue-500 group-hover/stat:bg-blue-100 transition-colors duration-200">
+                          <MemoryStick className="w-4 h-4" />
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-gray-600">RAM</p>
+                          <p className="text-lg font-semibold text-gray-900">{vm.memory_size_mib || 'N/A'} <span className="text-sm text-gray-500">MB</span></p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3 p-3 rounded-xl bg-white border border-gray-100 hover:border-purple-200 transition-colors duration-200 group/stat">
+                        <div className="p-2 rounded-lg bg-purple-50 text-purple-500 group-hover/stat:bg-purple-100 transition-colors duration-200">
+                          <Cpu className="w-4 h-4" />
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-gray-600">CPU</p>
+                          <p className="text-lg font-semibold text-gray-900">{vm.vcpu_count || 'N/A'} <span className="text-sm text-gray-500">cœurs</span></p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3 p-3 rounded-xl bg-white border border-gray-100 hover:border-orange-200 transition-colors duration-200 group/stat">
+                        <div className="p-2 rounded-lg bg-orange-50 text-orange-500 group-hover/stat:bg-orange-100 transition-colors duration-200">
+                          <HardDrive className="w-4 h-4" />
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-gray-600">Stockage</p>
+                          <p className="text-lg font-semibold text-gray-900">{vm.disk_size_gb || 'N/A'} <span className="text-sm text-gray-500">GB</span></p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3 p-3 rounded-xl bg-white border border-gray-100 hover:border-green-200 transition-colors duration-200 group/stat">
+                        <div className="p-2 rounded-lg bg-green-50 text-green-500 group-hover/stat:bg-green-100 transition-colors duration-200">
+                          <Globe className="w-4 h-4" />
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-gray-600">IP</p>
+                          <p className="text-lg font-semibold text-gray-900 font-mono">{vm.ip_address || 'N/A'}</p>
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            ))}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

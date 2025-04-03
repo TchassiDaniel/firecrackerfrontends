@@ -19,30 +19,37 @@ import {
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { VMOffer } from '@/types/virtualMachine';
+import { VMmodels } from '@/types/virtualMachine';
 
 export default function DashboardPage() {
   const { user } = useAuth();
   const router = useRouter();
   const { 
-    vmOffers,
+    vmModels,
     userVirtualMachines,
     isLoading,
     error,
-    fetchVMOffers,
-    fetchUserVirtualMachines 
+    fetchVMModels,
+    fetchVirtualMachines 
   } = useVirtualMachines();
   
   const [totalCost, setTotalCost] = useState(0);
   const [totalResources, setTotalResources] = useState({ vcpu: 0, memory: 0 });
 
   useEffect(() => {
-    // Fetch VM offers and user VMs when component mounts
-    fetchVMOffers();
-    if (user?.id) {
-      fetchUserVirtualMachines(user.id);
-    }
-  }, [fetchVMOffers, fetchUserVirtualMachines, user]);
+    // Récupérer les modèles de VMs
+    fetchVMModels();
+  }, [fetchVMModels]);
+
+
+
+console.log(vmModels)  
+  // useEffect(() => {
+  //   // Récupérer les machines virtuelles
+  //   if (user) {
+  //     fetchVirtualMachines();
+  //   }
+  // }, [fetchVirtualMachines, user]);
 
   useEffect(() => {
     // Calculate total resources and costs when userVirtualMachines changes
@@ -65,8 +72,8 @@ export default function DashboardPage() {
     }
   }, [userVirtualMachines]);
 
-  // Format VM offer for display
-  const formatVMOffer = (offer: VMOffer, index: number) => {
+  // Format VM model for display
+  const formatVMModel = (model: VMmodels, index: number) => {
     const gradients = [
       { gradient: 'from-blue-50 to-blue-100', borderColor: 'border-blue-300', buttonColor: 'bg-blue-600 hover:bg-blue-700' },
       { gradient: 'from-purple-50 to-purple-100', borderColor: 'border-purple-300', buttonColor: 'bg-purple-600 hover:bg-purple-700' },
@@ -75,20 +82,21 @@ export default function DashboardPage() {
     ];
     
     // Calculate price based on resources (simplified)
-    const pricePerHour = (offer.cpu_count * 0.5).toFixed(1);
+    const pricePerHour = (model.cpu * 0.5).toFixed(1);
     
-    // Determine if this is the recommended offer (mid-tier)
+    // Determine if this is the recommended model (mid-tier)
     const isRecommended = index === 1;
     
     const style = gradients[index % gradients.length];
-    
+
+
     return {
-      ...offer,
-      description: getOfferDescription(index),
+      ...model,
+      description: getModelDescription(index),
       specs: [
-        { icon: <Cpu className="w-4 h-4" />, text: `${offer.cpu_count} vCPUs` },
-        { icon: <CircuitBoard className="w-4 h-4" />, text: `${offer.memory_size} MiB RAM` },
-        { icon: <HardDrive className="w-4 h-4" />, text: `${offer.disk_size} GB Storage` },
+        { icon: <Cpu className="w-4 h-4" />, text: `${model.cpu} vCPUs` },
+        { icon: <CircuitBoard className="w-4 h-4" />, text: `${model.ram} MiB RAM` },
+        { icon: <HardDrive className="w-4 h-4" />, text: `${model.storage} GB Storage` },
         { icon: <Clock className="w-4 h-4" />, text: `$${pricePerHour}/hour` },
       ],
       price: `$${pricePerHour}`,
@@ -100,7 +108,7 @@ export default function DashboardPage() {
   };
 
   // Helper function to get descriptions based on tier
-  const getOfferDescription = (index: number) => {
+  const getModelDescription = (index: number) => {
     const descriptions = [
       'Parfait pour les petits projets et le développement',
       'Idéal pour les applications web et les bases de données moyennes',
@@ -110,24 +118,24 @@ export default function DashboardPage() {
     return descriptions[index % descriptions.length];
   };
 
-  // Animation variants
-  const container = {
-    hidden: { opacity: 0 },
-    show: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.1
-      }
+ // Animation variants
+ const container = {
+  hidden: { opacity: 0 },
+  show: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.1
     }
-  };
+  }
+};
 
-  const item = {
-    hidden: { y: 20, opacity: 0 },
-    show: { y: 0, opacity: 1 }
-  };
+const item = {
+  hidden: { y: 20, opacity: 0 },
+  show: { y: 0, opacity: 1 }
+};
 
-  // Render loading skeletons for VM offers
-  const renderOfferSkeletons = () => {
+  // Render loading skeletons for VM models
+  const renderModelSkeletons = () => {
     return Array(4).fill(0).map((_, i) => (
       <motion.div 
         key={`skeleton-${i}`}
@@ -155,24 +163,24 @@ export default function DashboardPage() {
     ));
   };
 
-  // Render error message
-  const renderError = () => (
-    <motion.div 
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      className="p-6 bg-red-50 border border-red-200 rounded-xl text-center"
-    >
-      <AlertTriangle className="h-12 w-12 text-red-500 mx-auto mb-4" />
-      <h3 className="text-xl font-bold text-red-800 mb-2">Une erreur s'est produite</h3>
-      <p className="text-red-600">{error}</p>
-      <Button 
-        onClick={() => fetchVMOffers()}
-        className="mt-4 bg-red-600 hover:bg-red-700 text-white"
-      >
-        Réessayer
-      </Button>
-    </motion.div>
-  );
+  // // Render error message
+  // const renderError = () => (
+  //   <motion.div 
+  //     initial={{ opacity: 0 }}
+  //     animate={{ opacity: 1 }}
+  //     className="p-6 bg-red-50 border border-red-200 rounded-xl text-center"
+  //   >
+  //     <AlertTriangle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+  //     <h3 className="text-xl font-bold text-red-800 mb-2">Une erreur s'est produite</h3>
+  //     <p className="text-red-600">{error}</p>
+  //     <Button 
+  //       onClick={() => fetchVMModels()}
+  //       className="mt-4 bg-red-600 hover:bg-red-700 text-white"
+  //     >
+  //       Réessayer
+  //     </Button>
+  //   </motion.div>
+  // );
 
   return (
     <div className="p-8 bg-gradient-to-br from-gray-50 to-gray-100 min-h-screen">
@@ -306,11 +314,11 @@ export default function DashboardPage() {
           </motion.div>
         </motion.div>
 
-        {/* VM Offers */}
-        <div className="mb-16">
+               {/* VM Models */}
+               <div className="mb-16">
           <div className="flex items-center mb-8">
             <div className="h-1 w-10 bg-blue-600 rounded mr-3"></div>
-            <h2 className="text-2xl font-bold text-gray-900">Available VM Offers</h2>
+            <h2 className="text-2xl font-bold text-gray-900">Available VM Models</h2>
           </div>
           
           <motion.div 
@@ -319,48 +327,51 @@ export default function DashboardPage() {
             animate="show"
             className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8"
           >
-            {error && renderError()}
+            {/* {error && renderError()} */}
             
-            {isLoading && renderOfferSkeletons()}
+            {isLoading && renderModelSkeletons()}
             
-            {!isLoading && !error && vmOffers && vmOffers.map((offer, index) => {
-              const formattedOffer = formatVMOffer(offer, index);
+            {!isLoading && !error && vmModels && vmModels.map((model, index) => {
+              const formattedModel = formatVMModel(model, index);
               return (
                 <motion.div 
-                  key={offer.id}
+                  key={model.id}
                   variants={item}
                   whileHover={{ y: -5 }}
                   transition={{ type: "spring", stiffness: 300 }}
                 >
                   <Card 
-                    className={`relative p-6 border-2 ${formattedOffer.borderColor} bg-gradient-to-b ${formattedOffer.gradient} rounded-xl overflow-hidden shadow-md hover:shadow-2xl transition-all duration-300`}
+                    className={`relative pt-12 px-6 pb-6 border-2 min-h-[500px] flex flex-col justify-between ${formattedModel.borderColor} bg-gradient-to-b ${formattedModel.gradient} rounded-xl overflow-hidden shadow-md hover:shadow-2xl transition-all duration-300`}
                   >
-                    {formattedOffer.recommended && (
-                      <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-4 py-1 rounded-full text-sm font-medium shadow-md">
-                        Recommandé
+                    {formattedModel.recommended && (
+                      <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-gradient-to-r from-purple-600 via-indigo-600 to-purple-600 text-white px-6 py-4 rounded-full text-sm font-medium shadow-lg z-20 animate-pulse border border-purple-400/30 backdrop-blur-sm">
+                        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-[shine_2s_infinite] -skew-x-45"></div>
+                        <span className="relative">Recommandé</span>
                       </div>
                     )}
                     <div className="text-center mb-6 relative z-10">
-                      <h3 className="text-xl font-bold mb-2">{formattedOffer.name}</h3>
-                      <p className="text-gray-600 text-sm">{formattedOffer.description}</p>
-                      <div className="mt-4 mb-6">
-                        <span className="text-3xl font-bold">{formattedOffer.price}</span>
+                      <h3 className="text-xl font-bold mb-3 text-gray-800">{formattedModel.distribution_name}</h3>
+                      <p className="text-gray-600 text-sm min-h-[60px] px-4">{formattedModel.description}</p>
+                      <div className="mt-6 mb-6">
+                        <span className="text-3xl font-bold text-gray-800">{formattedModel.price}</span>
                         <span className="text-gray-600">/hour</span>
                       </div>
                     </div>
-                    <ul className="space-y-4 mb-8">
-                      {formattedOffer.specs.map((spec, idx) => (
-                        <li key={idx} className="flex items-center text-gray-600">
-                          <div className="mr-3 text-gray-500">{spec.icon}</div>
-                          <span>{spec.text}</span>
-                        </li>
-                      ))}
-                    </ul>
+                    <div className="flex-grow">
+                      <ul className="space-y-4 mb-8">
+                        {formattedModel.specs.map((spec, idx) => (
+                          <li key={idx} className="flex items-center text-gray-600">
+                            <div className="mr-3 text-gray-500">{spec.icon}</div>
+                            <span className="text-sm">{spec.text}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
                     <Button 
-                      className={`w-full py-6 text-base font-semibold text-white shadow-md hover:shadow-lg transition-all duration-300 ${formattedOffer.buttonColor}`}
-                      onClick={() => router.push(`/virtual-machines/new?offer=${offer.id}`)}
+                      className={`w-full py-4 px-2 text-sm font-semibold text-white shadow-md hover:shadow-lg transition-all duration-300 ${formattedModel.buttonColor} whitespace-normal`}
+                      onClick={() => router.push(`/virtual-machines/create?model=${model.id}`)}
                     >
-                      Créer une VM avec cette offre
+                      Créer une VM avec ce modèle
                     </Button>
                   </Card>
                 </motion.div>
@@ -378,7 +389,7 @@ export default function DashboardPage() {
             </div>
             <Button 
               className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-md hover:shadow-lg transition-all duration-300"
-              onClick={() => router.push('/virtual-machines/new')}
+              onClick={() => router.push('/virtual-machines/create')}
             >
               <Plus className="h-5 w-5 mr-2" />
               Nouvelle VM
@@ -448,7 +459,7 @@ export default function DashboardPage() {
                   <p className="text-gray-500 mb-6">Créez votre première machine virtuelle pour commencer votre voyage dans le cloud.</p>
                   <Button 
                     className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-md hover:shadow-lg transition-all duration-300"
-                    onClick={() => router.push('/virtual-machines/new')}
+                    onClick={() => router.push('/virtual-machines/create')}
                   >
                     <Plus className="h-5 w-5 mr-2" />
                     Créer votre première VM

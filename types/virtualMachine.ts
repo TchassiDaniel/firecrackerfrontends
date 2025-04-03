@@ -2,26 +2,29 @@
 export type VMStatus = 'running' | 'stopped' | 'paused';
 
 export interface VMUser {
-  id: string;
+  id: number;
   name: string;
   email: string;
 }
 
 export interface SystemImage {
-  id: string;
+  id: number;
   name: string;
-  version:string;
+  version: string;
   description: string;
   size_gb: number;
   created_at: string;
 }
 
-export interface VMOffer {
-  id: string;
-  name: string;
-  cpu_count:number;
-  memory_size:number;
-  disk_size:number;
+export interface VMmodels {
+  id: number;
+  distribution_name: string;
+  cpu: number;
+  storage: number;
+  ram: number;
+  kernel_base_path: string;
+  rootfs_base_path: string;
+  rootfs_download_url: string;
 }
 
 export interface VMMetrics {
@@ -34,13 +37,28 @@ export interface VMMetrics {
   disk_write_bytes: number;
 }
 
+export interface VMStatusHistory {
+  id: number;
+  status: VMStatus;
+  created_at: string;
+}
+
+export interface VmCreate {
+  name: string;
+  password: string;
+  owner_id?: number;
+  model_id: number;
+  location: string;
+  host_id?: number;
+}
+
 export interface VirtualMachine {
-  id: string;
+  id: number;
   name: string;
   status: VMStatus;
   vcpu_count: number;
   memory_size_mib: number;
-  description:string;
+  description: string;
   disk_size_gb: number;
   created_at: string;
   ip_address: string;
@@ -49,11 +67,8 @@ export interface VirtualMachine {
   tap_ip: string;
   ssh_port: number;
   user: VMUser;
-  systemImage: {
-    id: string;
-    name: string;
-  };
-  vmOffer: VMOffer;
+  systemImage: SystemImage;
+  vmModels: VMmodels;
   metrics: VMMetrics;
 }
 
@@ -68,7 +83,7 @@ export interface CreateVMPayload {
   vcpu_count: number;
   memory_size_mib: number;
   disk_size_gb: number;
-  system_image_id: string;
+  system_image_id: number;
 }
 
 export interface UpdateVMPayload {
