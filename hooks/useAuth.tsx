@@ -16,6 +16,7 @@ interface AuthContextType {
   user: User | null;
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
+  register: (name: string, email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   checkAuth: () => Promise<void>;
 }
@@ -93,13 +94,102 @@ const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           variant: 'destructive',
         });
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Erreur lors de la connexion:', error);
-      toast({
-        title: 'Erreur',
-        description: 'Email ou mot de passe incorrect',
-        variant: 'destructive',
+      
+      // Gestion spécifique des erreurs réseau
+      if (error.message === 'Network Error') {
+        toast({
+          title: 'Erreur de connexion',
+          description: 'Impossible de se connecter au serveur. Veuillez vérifier votre connexion internet.',
+          variant: 'destructive',
+        });
+      } else if (error.response) {
+        // Erreur avec réponse du serveur (401, 403, etc.)
+        toast({
+          title: 'Erreur',
+          description: error.response.data?.message || 'Email ou mot de passe incorrect',
+          variant: 'destructive',
+        });
+      } else if (error.request) {
+        // Erreur sans réponse du serveur
+        toast({
+          title: 'Erreur serveur',
+          description: 'Le serveur n\'a pas répondu à la demande. Veuillez réessayer plus tard.',
+          variant: 'destructive',
+        });
+      } else {
+        // Autres erreurs
+        toast({
+          title: 'Erreur',
+          description: error.message || 'Une erreur inattendue s\'est produite lors de la connexion',
+          variant: 'destructive',
+        });
+      }
+    }
+  };
+
+  const register = async (name: string, email: string, password: string) => {
+    try {
+      const authClient = getServiceClient('AUTH_SERVICE');
+      const response = await authClient.post('/signup', { 
+        name,
+        email, 
+        password 
       });
+  
+      console.log("réponse du register de useAuth");
+      console.log('réponse user data ', response.data);
+
+      // Vérifier que la réponse est réussie (statut 2xx)
+      if (response.status >= 200 && response.status < 300) {
+        toast({
+          title: 'Succès',
+          description: 'Inscription réussie. Veuillez vous connecter.',
+        });
+        router.push('/auth/login');
+      } else {
+        // Si la réponse n'est pas réussie, afficher l'erreur
+        toast({
+          title: 'Erreur',
+          description: response.data?.message || 'Erreur lors de l\'inscription',
+          variant: 'destructive',
+        });
+      }
+    } catch (error: any) {
+      console.error('Erreur lors de l\'inscription:', error);
+      
+      // Gestion spécifique des erreurs réseau
+      if (error.message === 'Network Error') {
+        toast({
+          title: 'Erreur de connexion',
+          description: 'Impossible de se connecter au serveur. Veuillez vérifier votre connexion internet.',
+          variant: 'destructive',
+        });
+      } else if (error.response) {
+        // Erreur avec réponse du serveur
+        toast({
+          title: 'Erreur',
+          description: error.response.data?.message || `Erreur ${error.response.status}: ${error.response.statusText}`,
+          variant: 'destructive',
+        });
+      } else if (error.request) {
+        // Erreur sans réponse du serveur
+        toast({
+          title: 'Erreur serveur',
+          description: 'Le serveur n\'a pas répondu à la demande. Veuillez réessayer plus tard.',
+          variant: 'destructive',
+        });
+      } else {
+        // Autres erreurs
+        toast({
+          title: 'Erreur',
+          description: error.message || 'Une erreur inattendue s\'est produite lors de l\'inscription',
+          variant: 'destructive',
+        });
+      }
+      
+      throw error; // Propager l'erreur pour que le composant puisse aussi la gérer si nécessaire
     }
   };
 
@@ -142,6 +232,7 @@ const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         user,
         loading,
         login,
+        register,
         logout,
         checkAuth,
       }}

@@ -1,5 +1,3 @@
-// Fichier app/virtual-machines/create/page.tsx 
-
 "use client";
 
 import { useState, useEffect } from "react";
@@ -7,7 +5,19 @@ import { useRouter } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
-import { ArrowLeft } from "lucide-react";
+import { 
+  ArrowLeft, 
+  Check, 
+  Server, 
+  Globe, 
+  Lock, 
+  Terminal,
+  Cpu,
+  MemoryStick,
+  HardDrive,
+  Cloud,
+  Power
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Form,
@@ -20,13 +30,6 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
   Card,
   CardContent,
   CardDescription,
@@ -35,22 +38,17 @@ import {
 } from "@/components/ui/card";
 import { useToast } from "@/components/ui/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
-
-interface SystemImage {
-  id: string;
-  name: string;
-  version: string;
-  os_type: string;
-}
-
-interface VmOffer {
-  id: string;
-  name: string;
-  cpu_count: number;
-  memory_size_mib: number;
-  disk_size_gb: number;
-  price_per_hour: number;
-}
+import { useVirtualMachines } from "@/hooks/useVirtualMachines";
+import { SystemImage, VMmodels } from "@/types/virtualMachine";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { useAuth } from "@/hooks/useAuth";
+import { motion, AnimatePresence } from "framer-motion";
 
 const formSchema = z.object({
   name: z
@@ -64,316 +62,448 @@ const formSchema = z.object({
       /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[a-zA-Z\d\W]{8,}$/,
       "Le mot de passe doit contenir au moins une majuscule, une minuscule et un chiffre"
     ),
-  system_image_id: z.string().min(1, "Veuillez sélectionner une image système"),
-  vm_offer_id: z.string().min(1, "Veuillez sélectionner une offre"),
+  model_id: z.number().min(1, "Veuillez sélectionner un modèle de VM"),
+  location: z.string().min(1, "Veuillez sélectionner une localisation"),
+  owner_id: z.number().optional()
 });
+
+const fadeInUp = {
+  initial: { opacity: 0, y: 20 },
+  animate: { opacity: 1, y: 0 },
+  exit: { opacity: 0, y: -20 }
+};
+
+const StatsCard = ({ icon: Icon, title, value, color }: any) => (
+  <motion.div
+    variants={fadeInUp}
+    className={`bg-white rounded-xl p-4 shadow-lg border-l-4 ${color}`}
+  >
+    <div className="flex items-center gap-3">
+      <div className={`p-2 rounded-lg ${color.replace('border', 'bg')}`}>
+        <Icon className="w-5 h-5 text-white" />
+      </div>
+      <div>
+        <p className="text-sm text-gray-600">{title}</p>
+        <p className="text-xl font-semibold">{value}</p>
+      </div>
+    </div>
+  </motion.div>
+);
 
 export default function CreateVirtualMachinePage() {
   const router = useRouter();
   const { toast } = useToast();
-  const [isLoading, setIsLoading] = useState(true);
-  const [systemImages, setSystemImages] = useState<SystemImage[]>([]);
-  const [vmOffers, setVmOffers] = useState<VmOffer[]>([]);
-  const [selectedOffer, setSelectedOffer] = useState<VmOffer | null>(null);
-  const [selectedImage, setSelectedImage] = useState<SystemImage | null>(null);
+  const { user } = useAuth();
+  const {
+    systemImages,
+    vmModels,
+    locations,
+    isLoading,
+    error,
+    fetchSystemImages,
+    fetchVMModels,
+    fetchLocations,
+    createVirtualMachine
+  } = useVirtualMachines();
+
+  const [selectedModel, setSelectedModel] = useState<VMmodels | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [currentStep, setCurrentStep] = useState(1);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       name: "",
       password: "",
-      system_image_id: "",
-      vm_offer_id: "",
+      model_id: 1,
+      location: "",
+      owner_id: Number(user?.id) || 1
     },
   });
 
   useEffect(() => {
-    const fetchData = async () => {
+    const loadData = async () => {
       try {
-        const [imagesResponse, offersResponse] = await Promise.all([
-          fetch("/api/system-images"),
-          fetch("/api/vm-offers"),
+        await Promise.all([
+          fetchSystemImages(),
+          fetchVMModels(),
+          fetchLocations()
         ]);
-
-        if (!imagesResponse.ok || !offersResponse.ok) {
-          throw new Error("Erreur lors du chargement des données");
-        }
-
-        const [images, offers] = await Promise.all([
-          imagesResponse.json(),
-          offersResponse.json(),
-        ]);
-
-        setSystemImages(images);
-        setVmOffers(offers);
       } catch (error) {
         toast({
           variant: "destructive",
-          title: "Erreur",
-          description: "Impossible de charger les données",
+          title: "Erreur de chargement",
+          description: "Impossible de charger les données nécessaires",
         });
-        router.push("/virtual-machines");
-      } finally {
-        setIsLoading(false);
       }
     };
 
-    fetchData();
-  }, [router, toast]);
+    loadData();
+  }, []);
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
+    setIsSubmitting(true);
     try {
-      const response = await fetch("/api/virtual-machines", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(values),
-      });
-
-      if (!response.ok) throw new Error("Erreur lors de la création");
-
+      const result = await createVirtualMachine(values);
+      
       toast({
-        title: "Succès",
-        description: "Machine virtuelle créée avec succès",
+        title: "Nouvelle machine virtuelle créée",
+        description: (
+          <motion.div
+            initial="initial"
+            animate="animate"
+            exit="exit"
+            variants={fadeInUp}
+            className="space-y-4 mt-4"
+          >
+            <div className="flex items-center gap-2 mb-4">
+              <Power className="w-5 h-5 text-green-500" />
+              <span className="font-medium">Configuration terminée avec succès</span>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <StatsCard
+                icon={Cpu}
+                title="CPU"
+                value={`${result.cpu} cœurs`}
+                color="border-blue-500"
+              />
+              <StatsCard
+                icon={MemoryStick}
+                title="RAM"
+                value={`${result.ram} MB`}
+                color="border-purple-500"
+              />
+              <StatsCard
+                icon={HardDrive}
+                title="Stockage"
+                value={`${result.storage} GB`}
+                color="border-orange-500"
+              />
+              <StatsCard
+                icon={Globe}
+                title="IP"
+                value={result.ip_address}
+                color="border-green-500"
+              />
+            </div>
+
+            <div className="bg-gray-50 rounded-xl p-4 mt-4">
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="font-semibold flex items-center gap-2">
+                  <Lock className="w-4 h-4" />
+                  Clé SSH
+                </h3>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => navigator.clipboard.writeText(result.ssh_key)}
+                  className="hover:scale-105 transition-transform"
+                >
+                  Copier
+                </Button>
+              </div>
+              <code className="block bg-black text-green-400 p-3 rounded-lg text-sm overflow-x-auto">
+                {result.ssh_key}
+              </code>
+            </div>
+          </motion.div>
+        ),
+        duration: 10000,
       });
+
       router.push("/virtual-machines");
-    } catch (error) {
+    } catch (error: any) {
       toast({
         variant: "destructive",
         title: "Erreur",
-        description: "Impossible de créer la machine virtuelle",
+        description: error.message || "Une erreur est survenue",
       });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
-  const handleOfferChange = (offerId: string) => {
-    const offer = vmOffers.find((o) => o.id === offerId);
-    setSelectedOffer(offer || null);
-    form.setValue("vm_offer_id", offerId);
-  };
-
-  const handleImageChange = (imageId: string) => {
-    const image = systemImages.find((i) => i.id === imageId);
-    setSelectedImage(image || null);
-    form.setValue("system_image_id", imageId);
+  const handleModelChange = (modelId: string) => {
+    const model = vmModels.find((m) => m.id === Number(modelId));
+    setSelectedModel(model || null);
+    form.setValue("model_id", Number(modelId));
   };
 
   if (isLoading) {
     return (
-      <div className="container mx-auto px-4 py-8">
-        <div className="space-y-6">
-          <Skeleton className="h-8 w-64" />
-          <Card>
-            <CardHeader>
-              <Skeleton className="h-6 w-48" />
-              <Skeleton className="h-4 w-72" />
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {[...Array(4)].map((_, i) => (
-                  <div key={i} className="space-y-2">
-                    <Skeleton className="h-4 w-24" />
-                    <Skeleton className="h-10 w-full" />
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
+      <div className="container mx-auto p-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {[...Array(6)].map((_, i) => (
+            <div key={i} className="space-y-4">
+              <Skeleton className="h-8 w-3/4" />
+              <Skeleton className="h-24 w-full rounded-xl" />
+            </div>
+          ))}
         </div>
       </div>
     );
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="flex justify-between items-center mb-6">
-        <div className="flex items-center gap-4">
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      className="container mx-auto p-8"
+    >
+      <div className="mb-8">
+        <motion.div
+          initial={{ x: -20, opacity: 0 }}
+          animate={{ x: 0, opacity: 1 }}
+          className="flex items-center gap-4"
+        >
           <Button
             variant="outline"
             onClick={() => router.push("/virtual-machines")}
+            className="group hover:scale-105 transition-all duration-300"
           >
-            <ArrowLeft className="mr-2 h-4 w-4" />
+            <ArrowLeft className="mr-2 h-4 w-4 group-hover:-translate-x-1 transition-transform" />
             Retour
           </Button>
-          <h1 className="text-2xl font-bold">Créer une machine virtuelle</h1>
-        </div>
+          <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+            Nouvelle Machine Virtuelle
+          </h1>
+        </motion.div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2">
-          <Card>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <motion.div
+          variants={fadeInUp}
+          initial="initial"
+          animate="animate"
+          className="lg:col-span-2"
+        >
+          <Card className="backdrop-blur-sm bg-white/80 shadow-xl border-t-4 border-t-blue-500">
             <CardHeader>
-              <CardTitle>Nouvelle machine virtuelle</CardTitle>
+              <CardTitle className="text-2xl">Configuration</CardTitle>
               <CardDescription>
-                Configurez votre nouvelle machine virtuelle
+                Personnalisez votre nouvelle machine virtuelle
               </CardDescription>
             </CardHeader>
             <CardContent>
               <Form {...form}>
-                <form
-                  onSubmit={form.handleSubmit(onSubmit)}
-                  className="space-y-6"
-                >
-                  <FormField
-                    control={form.control}
-                    name="name"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Nom</FormLabel>
-                        <FormControl>
-                          <Input {...field} placeholder="Ma VM" />
-                        </FormControl>
-                        <FormDescription>
-                          Le nom de votre machine virtuelle
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                  <AnimatePresence mode="wait">
+                    <motion.div
+                      key={currentStep}
+                      initial={{ opacity: 0, x: 20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: -20 }}
+                      className="space-y-6"
+                    >
+                      {/* Location Selection */}
+                      <FormField
+                        control={form.control}
+                        name="location"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-lg font-semibold">
+                              Localisation
+                            </FormLabel>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              {locations.map((location) => (
+                                <motion.div
+                                  whileHover={{ scale: 1.02 }}
+                                  whileTap={{ scale: 0.98 }}
+                                  key={location}
+                                  onClick={() => field.onChange(location)}
+                                  className={`
+                                    relative p-4 rounded-xl cursor-pointer
+                                    transition-all duration-300
+                                    ${field.value === location
+                                      ? 'bg-blue-50 border-2 border-blue-500'
+                                      : 'bg-gray-50 border-2 border-gray-200 hover:border-blue-200'}
+                                  `}
+                                >
+                                  <div className="flex items-center gap-3">
+                                    <Globe className={`w-5 h-5 ${field.value === location ? 'text-blue-500' : 'text-gray-500'}`} />
+                                    <span className="font-medium">{location}</span>
+                                  </div>
+                                  {field.value === location && (
+                                    <motion.div
+                                      initial={{ scale: 0 }}
+                                      animate={{ scale: 1 }}
+                                      className="absolute top-2 right-2"
+                                    >
+                                      <Check className="w-4 h-4 text-blue-500" />
+                                    </motion.div>
+                                  )}
+                                </motion.div>
+                              ))}
+                            </div>
+                          </FormItem>
+                        )}
+                      />
 
-                  <FormField
-                    control={form.control}
-                    name="password"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Mot de passe root</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="password"
-                            {...field}
-                            placeholder="••••••••"
-                          />
-                        </FormControl>
-                        <FormDescription>
-                          Ce mot de passe sera utilisé pour accéder à votre VM en
-                          tant qu&apos;utilisateur root
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                      {/* VM Name */}
+                      <FormField
+                        control={form.control}
+                        name="name"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-lg font-semibold">
+                              Nom de la machine
+                            </FormLabel>
+                            <FormControl>
+                              <Input
+                                {...field}
+                                className="h-12 text-lg"
+                                placeholder="ex: production-server-01"
+                              />
+                            </FormControl>
+                          </FormItem>
+                        )}
+                      />
 
-                  <FormField
-                    control={form.control}
-                    name="vm_offer_id"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Offre</FormLabel>
-                        <Select
-                          onValueChange={handleOfferChange}
-                          defaultValue={field.value}
-                        >
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Sélectionnez une offre" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {vmOffers.map((offer) => (
-                              <SelectItem key={offer.id} value={offer.id}>
-                                {offer.name} - {offer.cpu_count} vCPUs,{" "}
-                                {offer.memory_size_mib}MiB RAM,{" "}
-                                {offer.disk_size_gb}GB - $
-                                {offer.price_per_hour.toFixed(1)}/heure
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <FormDescription>
-                          Les ressources allouées à votre machine virtuelle
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                      {/* Model Selection */}
+                      <FormField
+                        control={form.control}
+                        name="model_id"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-lg font-semibold">
+                              Modèle
+                            </FormLabel>
+                            <Select
+                              onValueChange={handleModelChange}
+                              defaultValue={field.value.toString()}
+                            >
+                              <FormControl>
+                                <SelectTrigger className="h-12">
+                                  <SelectValue placeholder="Sélectionnez un modèle" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                {vmModels.map((model) => (
+                                  <SelectItem
+                                    key={model.id}
+                                    value={model.id.toString()}
+                                    className="py-3"
+                                  >
+                                    <div className="flex items-center gap-2">
+                                      <Server className="w-4 h-4" />
+                                      <span>{model.distribution_name}</span>
+                                    </div>
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </FormItem>
+                        )}
+                      />
 
-                  <FormField
-                    control={form.control}
-                    name="system_image_id"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Image système</FormLabel>
-                        <Select
-                          onValueChange={handleImageChange}
-                          defaultValue={field.value}
-                        >
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Sélectionnez une image système" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {systemImages.map((image) => (
-                              <SelectItem key={image.id} value={image.id}>
-                                {image.name} - {image.os_type} Version:{" "}
-                                {image.version}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <FormDescription>
-                          Le système d&apos;exploitation de votre machine virtuelle
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                      {/* Password */}
+                      <FormField
+                        control={form.control}
+                        name="password"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-lg font-semibold">
+                              Mot de passe root
+                            </FormLabel>
+                            <FormControl>
+                              <Input
+                                type="password"
+                                className="h-12"
+                                {...field}
+                              />
+                            </FormControl>
+                          </FormItem>
+                        )}
+                      />
 
-                  <Button type="submit">Créer la machine virtuelle</Button>
+                      <Button
+                        type="submit"
+                        className="w-full h-12 text-lg font-semibold bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 transition-all duration-300"
+                        disabled={isSubmitting}
+                      >
+                        {isSubmitting ? (
+                          <div className="flex items-center gap-2">
+                            <span className="animate-spin">◌</span>
+                            Création en cours...
+                          </div>
+                        ) : (
+                          "Créer la machine virtuelle"
+                        )}
+                      </Button>
+                    </motion.div>
+                  </AnimatePresence>
                 </form>
               </Form>
             </CardContent>
           </Card>
-        </div>
+        </motion.div>
 
-        <div>
-          <Card>
+        <motion.div
+          variants={fadeInUp}
+          initial="initial"
+          animate="animate"
+          className="lg:sticky lg:top-8 h-fit"
+        >
+          <Card className="backdrop-blur-sm bg-white/80 shadow-xl border-t-4 border-t-purple-500">
             <CardHeader>
-              <CardTitle>Résumé de la configuration</CardTitle>
+              <CardTitle className="text-2xl">Résumé</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <h4 className="font-medium mb-2">Offre sélectionnée</h4>
-                <p className="text-sm text-muted-foreground">
-                  {selectedOffer ? (
-                    <>
-                      <strong>{selectedOffer.name}</strong>
-                      <br />
-                      {selectedOffer.cpu_count} vCPUs
-                      <br />
-                      {selectedOffer.memory_size_mib} MiB RAM
-                      <br />
-                      {selectedOffer.disk_size_gb} GB SSD
-                      <br />
-                      <span className="text-primary">
-                        ${selectedOffer.price_per_hour.toFixed(1)}/heure
-                      </span>
-                    </>
-                  ) : (
-                    "Aucune offre sélectionnée"
-                  )}
-                </p>
-              </div>
-
-              <div>
-                <h4 className="font-medium mb-2">Image système</h4>
-                <p className="text-sm text-muted-foreground">
-                  {selectedImage ? (
-                    <>
-                      <strong>{selectedImage.name}</strong>
-                      <br />
-                      {selectedImage.os_type}
-                      <br />
-                      Version {selectedImage.version}
-                    </>
-                  ) : (
-                    "Aucune image sélectionnée"
-                  )}
-                </p>
-              </div>
+            <CardContent>
+              <AnimatePresence mode="wait">
+                {selectedModel ? (
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -20 }}
+                    className="space-y-6"
+                  >
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="bg-gray-50 p-4 rounded-xl">
+                        <div className="flex items-center gap-2 mb-2">
+                          <Cpu className="w-4 h-4 text-blue-500" />
+                          <span className="text-sm text-gray-600">CPU</span>
+                        </div>
+                        <p className="text-xl font-semibold">{selectedModel.cpu} cœurs</p>
+                      </div>
+                      <div className="bg-gray-50 p-4 rounded-xl">
+                        <div className="flex items-center gap-2 mb-2">
+                          
+                          <MemoryStick className="w-4 h-4 text-purple-500" />
+                          <span className="text-sm text-gray-600">RAM</span>
+                        </div>
+                        <p className="text-xl font-semibold">{selectedModel.ram} MB</p>
+                      </div>
+                      <div className="bg-gray-50 p-4 rounded-xl">
+                        <div className="flex items-center gap-2 mb-2">
+                          <HardDrive className="w-4 h-4 text-orange-500" />
+                          <span className="text-sm text-gray-600">Stockage</span>
+                        </div>
+                        <p className="text-xl font-semibold">{selectedModel.storage} GB</p>
+                      </div>
+                      <div className="bg-gray-50 p-4 rounded-xl">
+                        <div className="flex items-center gap-2 mb-2">
+                          <Cloud className="w-4 h-4 text-green-500" />
+                          <span className="text-sm text-gray-600">Type</span>
+                        </div>
+                        <p className="text-xl font-semibold">{selectedModel.distribution_name}</p>
+                      </div>
+                    </div>
+                  </motion.div>
+                ) : (
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="text-center py-8 text-gray-500"
+                  >
+                    <Server className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                    <p>Sélectionnez un modèle pour voir les détails</p>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </CardContent>
           </Card>
-        </div>
+        </motion.div>
       </div>
-    </div>
+    </motion.div>
   );
 }

@@ -1,5 +1,3 @@
-// Fichier app/auth/register/page.tsx 
-
 'use client';
 
 import { useState } from 'react';
@@ -13,6 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/components/ui/use-toast';
+import { useAuth } from '@/hooks/useAuth';
 
 const registerSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters'),
@@ -37,41 +36,32 @@ export default function RegisterPage() {
   const router = useRouter();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
+  const { register: registerUser } = useAuth(); 
 
   const {
     register,
     handleSubmit,
     formState: { errors },
+    setValue,
+    watch,
   } = useForm<RegisterFormData>({
     resolver: zodResolver(registerSchema),
+    defaultValues: {
+      terms: false
+    }
   });
+
+  const termsValue = watch('terms');
 
   const onSubmit = async (data: RegisterFormData) => {
     setIsLoading(true);
     try {
-      const response = await fetch('/api/auth/register', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(data),
-      });
-
-      if (!response.ok) {
-        throw new Error('Registration failed');
-      }
-
-      router.push('/auth/verify-email');
-      toast({
-        title: 'Success',
-        description: 'Registration successful. Please verify your email.',
-      });
-    } catch (error) {
-      toast({
-        title: 'Error',
-        description: 'Registration failed. Please try again.',
-        variant: 'destructive',
-      });
+      await registerUser(data.name, data.email, data.password);
+      // La redirection est gérée dans le hook useAuth
+    } catch (error: any) {
+      console.error('Registration error:', error);
+      // Les erreurs sont déjà gérées dans le hook useAuth, 
+      // mais on peut ajouter un traitement supplémentaire ici si nécessaire
     } finally {
       setIsLoading(false);
     }
@@ -145,7 +135,13 @@ export default function RegisterPage() {
           </div>
 
           <div className="flex items-center gap-2">
-            <Checkbox id="terms" {...register('terms')} required />
+            <Checkbox 
+              id="terms" 
+              checked={termsValue}
+              onCheckedChange={(checked) => {
+                setValue('terms', checked === true, { shouldValidate: true });
+              }} 
+            />
             <Label htmlFor="terms" className="text-sm text-gray-600">
               I agree to the{' '}
               <Link href="/terms" className="text-[#0066FF] hover:text-blue-700">
@@ -202,16 +198,16 @@ export default function RegisterPage() {
               </>
             )}
           </Button>
-
-          <div className="text-center">
-            <Link
-              href="/auth/login"
-              className="text-blue-500 hover:text-blue-600 text-sm"
-            >
-              Already registered?
-            </Link>
-          </div>
         </form>
+
+        <div className="mt-8 text-center">
+          <p className="text-sm text-gray-500">
+            Already registered?{' '}
+            <Link href="/auth/login" className="text-blue-600 hover:text-blue-700">
+              Log in
+            </Link>
+          </p>
+        </div>
       </div>
     </div>
   );
