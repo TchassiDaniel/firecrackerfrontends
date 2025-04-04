@@ -33,18 +33,16 @@ export const API_ENDPOINTS = {
   VIRTUAL_MACHINES: {
     service: SERVICES.VM_SERVICE,
     endpoints: {
-      LIST: '/vms',  // Récupérer toutes les VMs (admin)
-      LIST_BY_USER: (userId: string) => `/users/${userId}/vms`,  // Récupérer les VMs d'un utilisateur spécifique
-      CREATE: '/vms',  
-      GET: (id: string) => `/vms/${id}`,
-      UPDATE: (id: string) => `/vms/${id}`,
-      DELETE: (id: string) => `/vms/${id}`,
-      START: (id: string) => `/vms/${id}/start`,
-      STOP: (id: string) => `/vms/${id}/stop`,
-      PAUSE: (id: string) => `/vms/${id}/pause`,
+      LIST: '/virtual-machines',
+      CREATE: '/virtual-machines',
+      GET: (id: string) => `/virtual-machines/${id}`,
+      UPDATE: (id: string) => `/virtual-machines/${id}`,
+      DELETE: (id: string) => `/virtual-machines/${id}`,
+      START: (id: string) => `/virtual-machines/${id}/start`,
+      STOP: (id: string) => `/virtual-machines/${id}/stop`,
+      PAUSE: (id: string) => `/virtual-machines/${id}/pause`,
     }
   },
-  
   NOTIFICATIONS: {
     service: SERVICES.NOTIFICATION_SERVICE,
     endpoints: {
@@ -52,26 +50,5 @@ export const API_ENDPOINTS = {
       GET_ALL: '/notifications',
       MARK_READ: (id: string) => `/notifications/${id}/read`
     }
-  },
-  SYSTEM_IMAGES: {
-    service: SERVICES.VM_SERVICE,
-    endpoints: {
-      LIST: '/system-images',
-      GET: (id: string) => `/system-images/${id}`,
-      CREATE: '/system-images',
-      UPDATE: (id: string) => `/system-images/${id}`,
-      DELETE: (id: string) => `/system-images/${id}`,
-    }
-  },
-
-  VM_OFFERS: {
-    service: SERVICES.VM_SERVICE,
-    endpoints: {
-      LIST: '/vm-offers',
-      GET: (id: string) => `/vm-offers/${id}`,
-      CREATE: '/vm-offers',
-      UPDATE: (id: string) => `/vm-offers/${id}`,
-      DELETE: (id: string) => `/vm-offers/${id}`,
-    }
-  },
+  }
 } as const;
