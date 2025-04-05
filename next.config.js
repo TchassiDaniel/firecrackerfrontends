@@ -1,8 +1,13 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  experimental: {
-    serverActions: true
+  async rewrites() {
+    return [
+      {
+        source: '/api/auth/:path*',
+        destination: 'http://85.214.142.178:8079/auth/:path*'
+      }
+    ];
   },
   webpack: (config) => {
     config.resolve.fallback = {

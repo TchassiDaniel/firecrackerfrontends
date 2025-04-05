@@ -4,6 +4,7 @@ import { createContext, useContext, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { getServiceClient } from '@/lib/api/client';
 import { useToast } from "@/components/ui/use-toast";
+import axios from 'axios';
 
 export interface User {
   id: string;
@@ -19,9 +20,29 @@ interface AuthContextType {
   register: (name: string, email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   checkAuth: () => Promise<void>;
+  getToken: () => string | null;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
+
+// Fonction pour configurer le token d'authentification dans les en-têtes d'Axios
+const setupAuthToken = (token: string | null) => {
+  if (token) {
+    // Configurer le token pour toutes les futures requêtes Axios
+    axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+  } else {
+    // Supprimer le token si null
+    delete axios.defaults.headers.common['Authorization'];
+  }
+};
+
+// Fonction pour récupérer le token depuis le localStorage
+const getAuthToken = (): string | null => {
+  if (typeof window !== 'undefined') {
+    return localStorage.getItem('auth_token');
+  }
+  return null;
+};
 
 const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
@@ -29,10 +50,26 @@ const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const router = useRouter();
   const { toast } = useToast();
 
+  // Fonction pour récupérer le token stocké
+  const getToken = () => {
+    return getAuthToken();
+  };
+  
   const checkAuth = async () => {
     try {
+      // Récupérer le token du localStorage et le configurer si présent
+      const token = getAuthToken();
+      if (token) {
+        setupAuthToken(token);
+      } else {
+        // Si pas de token, considérer l'utilisateur comme non authentifié
+        setUser(null);
+        setLoading(false);
+        return null;
+      }
+      
       const authClient = getServiceClient('AUTH_SERVICE');
-      const response = await authClient.get('/user');
+      const response = await authClient.get('/auth/me');
 
       setUser(response.data); //on recupere l'utilisateur envoye par serverjs
 
@@ -68,23 +105,34 @@ const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const login = async (email: string, password: string) => {
     try {
       const authClient = getServiceClient('AUTH_SERVICE');
-      const response = await authClient.post('/login', { 
+      const response = await authClient.post('/auth/login', { 
         email, 
         password 
       });
   
        console.log("reponse du login de useAuth")
-       console.log('reponse user data ',response.data)
+     console.log('reponse user data ',response.data)
 
-      // Vérifier que la réponse est réussie (statut 2xx)
-      if (response.status >= 200 && response.status < 300) {
-        setUser(response.data);
-        
-        toast({
-          title: 'Succès',
-          description: 'Connexion réussie',
-        });
-        router.push('/dashboard');
+    // Vérifier que la réponse est réussie (statut 2xx)
+    if (response.status >= 200 && response.status < 300) {
+      // Extraire le token et les données utilisateur
+      const { token, ...userData } = response.data;
+
+      // Stocker le token dans localStorage
+      if (typeof window !== 'undefined' && token) {
+        localStorage.setItem('auth_token', token);
+        // Configurer le token pour les futures requêtes
+        setupAuthToken(token);
+      }
+      
+      // Ne stocker que les données utilisateur dans l'état
+      setUser(userData);
+      
+      toast({
+        title: 'Succès',
+        description: 'Connexion réussie',
+      });
+      router.push('/dashboard');
 
       } else {
         // Si la réponse n'est pas réussie, afficher l'erreur
@@ -132,7 +180,7 @@ const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const register = async (name: string, email: string, password: string) => {
     try {
       const authClient = getServiceClient('AUTH_SERVICE');
-      const response = await authClient.post('/signup', { 
+      const response = await authClient.post('/auth/signup', { 
         name,
         email, 
         password 
@@ -196,7 +244,15 @@ const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const logout = async () => {
     try {
       const authClient = getServiceClient('AUTH_SERVICE');
-      await authClient.post('/logout');
+      await authClient.post('/auth/logout');
+      
+      // Supprimer le token du localStorage
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('auth_token');
+        // Supprimer le token des en-têtes Axios
+        setupAuthToken(null);
+      }
+      
       setUser(null);
       router.push('/auth/login');
       toast({
@@ -206,6 +262,10 @@ const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     } catch (error) {
       console.error('Erreur lors de la déconnexion:', error);
       // Même en cas d'erreur, on déconnecte l'utilisateur localement
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('auth_token');
+        setupAuthToken(null);
+      }
       setUser(null);
       router.push('/auth/login');
       toast({
@@ -217,6 +277,11 @@ const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   useEffect(() => {
     const initAuth = async () => {
+      // Récupérer le token du localStorage au chargement initial
+      const token = getAuthToken();
+      if (token) {
+        setupAuthToken(token);
+      }
       await checkAuth();
     };
   
@@ -235,6 +300,7 @@ const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         register,
         logout,
         checkAuth,
+        getToken,
       }}
     >
       {children}
