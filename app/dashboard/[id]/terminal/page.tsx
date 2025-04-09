@@ -40,7 +40,7 @@ export default function TerminalPage() {
       setIsLoading(true);
       try {
        
-        const data = await fetchVirtualMachineById(id as string);
+        const data = await fetchVirtualMachineById(Number(id));
         setVM(data);
       } catch (error) {
         toast({

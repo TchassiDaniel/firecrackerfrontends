@@ -2,14 +2,14 @@
 
 import { createContext, useContext, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { toast } from '@/components/ui/use-toast';
 import { getServiceClient } from '@/lib/api/client';
-import { useToast } from "@/components/ui/use-toast";
 
-export interface User {
+interface User {
   id: string;
-  email: string;
   name: string;
-  role: 'admin' | 'user';
+  email: string;
+  role: string;
 }
 
 interface AuthContextType {
@@ -18,213 +18,159 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<void>;
   register: (name: string, email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
-  checkAuth: () => Promise<void>;
+  forgotPassword: (email: string) => Promise<void>;
+  resetPassword: (token: string, password: string) => Promise<void>;
+  verifyEmail: (id: string, hash: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
-const AuthProvider = ({ children }: { children: React.ReactNode }) => {
+export function AuthProvider({ children }: { children: React.ReactNode }) {
+  // Initialize with null, don't access localStorage during render
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
-  const { toast } = useToast();
 
-  const checkAuth = async () => {
-    try {
-      const authClient = getServiceClient('AUTH_SERVICE');
-      const response = await authClient.get('/user');
+  const authClient = getServiceClient('AUTH_SERVICE');
 
-      setUser(response.data); //on recupere l'utilisateur envoye par serverjs
+  // Load user from localStorage only after component mounts (client-side only)
+  useEffect(() => {
+    const storedUser = localStorage.getItem('user');
+    if (storedUser) {
+      setUser(JSON.parse(storedUser));
+    }
+    setLoading(false);
+  }, []);
 
-      return response.data;
-    } catch (error: any) {
-
-      // Si l'erreur est 401 ou 403, c'est normal quand non authentifié
-      if (error.response && (error.response.status === 401 || error.response.status === 403)) {
-         setUser(null);
-
-        // Rediriger vers login si on n'est pas déjà sur une page d'auth
-        if (!window.location.pathname.startsWith('/auth/')) {
-          router.push('/auth/login');
-        }
-        return null;
-      }
-
-      // Pour les autres erreurs, on affiche un toast
-      toast({
-        title: 'Erreur',
-        description: 'Erreur lors de la vérification de l\'authentification',
-        variant: 'destructive',
-      });
-
-      setUser(null);
-
-      return null;
-    } finally {
-      setLoading(false);
+  const updateUser = (userData: User | null) => {
+    setUser(userData);
+    if (userData) {
+      localStorage.setItem('user', JSON.stringify(userData));
+    } else {
+      localStorage.removeItem('user');
     }
   };
 
   const login = async (email: string, password: string) => {
     try {
-      const authClient = getServiceClient('AUTH_SERVICE');
-      const response = await authClient.post('/login', { 
-        email, 
-        password 
-      });
-  
-       console.log("reponse du login de useAuth")
-       console.log('reponse user data ',response.data)
-
-      // Vérifier que la réponse est réussie (statut 2xx)
-      if (response.status >= 200 && response.status < 300) {
-        setUser(response.data);
-        
-        toast({
-          title: 'Succès',
-          description: 'Connexion réussie',
-        });
-        router.push('/dashboard');
-
-      } else {
-        // Si la réponse n'est pas réussie, afficher l'erreur
-        toast({
-          title: 'Erreur',
-          description: response.data?.message || 'Erreur lors de la connexion',
-          variant: 'destructive',
-        });
-      }
-    } catch (error: any) {
-      console.error('Erreur lors de la connexion:', error);
+      const response = await authClient.post('/auth/login', { email, password });
       
-      // Gestion spécifique des erreurs réseau
-      if (error.message === 'Network Error') {
-        toast({
-          title: 'Erreur de connexion',
-          description: 'Impossible de se connecter au serveur. Veuillez vérifier votre connexion internet.',
-          variant: 'destructive',
-        });
-      } else if (error.response) {
-        // Erreur avec réponse du serveur (401, 403, etc.)
-        toast({
-          title: 'Erreur',
-          description: error.response.data?.message || 'Email ou mot de passe incorrect',
-          variant: 'destructive',
-        });
-      } else if (error.request) {
-        // Erreur sans réponse du serveur
-        toast({
-          title: 'Erreur serveur',
-          description: 'Le serveur n\'a pas répondu à la demande. Veuillez réessayer plus tard.',
-          variant: 'destructive',
-        });
-      } else {
-        // Autres erreurs
-        toast({
-          title: 'Erreur',
-          description: error.message || 'Une erreur inattendue s\'est produite lors de la connexion',
-          variant: 'destructive',
-        });
-      }
+      updateUser(response.data);
+      router.push('/dashboard');
+      toast({
+        title: "Success",
+        description: "You have been logged in successfully.",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.response?.data?.message || "Failed to login",
+        variant: "destructive",
+      });
+      throw error;
     }
   };
 
   const register = async (name: string, email: string, password: string) => {
     try {
-      const authClient = getServiceClient('AUTH_SERVICE');
-      const response = await authClient.post('/signup', { 
-        name,
-        email, 
-        password 
+      await authClient.post('/auth/signup', { name, email, password });
+      
+      toast({
+        title: "Success",
+        description: "Please check your email to verify your account.",
       });
-  
-      console.log("réponse du register de useAuth");
-      console.log('réponse user data ', response.data);
-
-      // Vérifier que la réponse est réussie (statut 2xx)
-      if (response.status >= 200 && response.status < 300) {
-        toast({
-          title: 'Succès',
-          description: 'Inscription réussie. Veuillez vous connecter.',
-        });
-        router.push('/auth/login');
-      } else {
-        // Si la réponse n'est pas réussie, afficher l'erreur
-        toast({
-          title: 'Erreur',
-          description: response.data?.message || 'Erreur lors de l\'inscription',
-          variant: 'destructive',
-        });
-      }
+      router.push('/auth/login');
     } catch (error: any) {
-      console.error('Erreur lors de l\'inscription:', error);
-      
-      // Gestion spécifique des erreurs réseau
-      if (error.message === 'Network Error') {
-        toast({
-          title: 'Erreur de connexion',
-          description: 'Impossible de se connecter au serveur. Veuillez vérifier votre connexion internet.',
-          variant: 'destructive',
-        });
-      } else if (error.response) {
-        // Erreur avec réponse du serveur
-        toast({
-          title: 'Erreur',
-          description: error.response.data?.message || `Erreur ${error.response.status}: ${error.response.statusText}`,
-          variant: 'destructive',
-        });
-      } else if (error.request) {
-        // Erreur sans réponse du serveur
-        toast({
-          title: 'Erreur serveur',
-          description: 'Le serveur n\'a pas répondu à la demande. Veuillez réessayer plus tard.',
-          variant: 'destructive',
-        });
-      } else {
-        // Autres erreurs
-        toast({
-          title: 'Erreur',
-          description: error.message || 'Une erreur inattendue s\'est produite lors de l\'inscription',
-          variant: 'destructive',
-        });
-      }
-      
-      throw error; // Propager l'erreur pour que le composant puisse aussi la gérer si nécessaire
+      toast({
+        title: "Error",
+        description: error.response?.data?.message || "Failed to register",
+        variant: "destructive",
+      });
+      throw error;
     }
   };
 
   const logout = async () => {
     try {
-      const authClient = getServiceClient('AUTH_SERVICE');
-      await authClient.post('/logout');
+      // Supprimer l'utilisateur du localStorage
+      localStorage.removeItem('user');
+      
+      // Mettre à jour l'état de l'utilisateur
       setUser(null);
-      router.push('/auth/login');
+      
+      // Rediriger vers la page de connexion
+      router.push('/');
+      
+      // Afficher un toast de confirmation
       toast({
-        title: 'Succès',
-        description: 'Déconnexion réussie',
+        title: "Déconnexion",
+        description: "Vous avez été déconnecté avec succès.",
       });
     } catch (error) {
-      console.error('Erreur lors de la déconnexion:', error);
-      // Même en cas d'erreur, on déconnecte l'utilisateur localement
-      setUser(null);
-      router.push('/auth/login');
+      // Gestion des erreurs potentielles
       toast({
-        title: 'Information',
-        description: 'Vous avez été déconnecté',
+        title: "Erreur",
+        description: "Une erreur est survenue lors de la déconnexion.",
+        variant: "destructive",
       });
     }
   };
 
-  useEffect(() => {
-    const initAuth = async () => {
-      await checkAuth();
-    };
-  
-    // On ne vérifie l'authentification que si user est null
-    if (user === null) {
-      initAuth();
+  const forgotPassword = async (email: string) => {
+    try {
+      await authClient.post('/auth/forgot-password', { email });
+      
+      toast({
+        title: "Success",
+        description: "Password reset instructions have been sent to your email.",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.response?.data?.message || "Failed to send reset email",
+        variant: "destructive",
+      });
+      throw error;
     }
-  }, [user]); // Ajouter user dans les dépendances
+  };
+
+  const resetPassword = async (token: string, password: string) => {
+    try {
+      await authClient.post('/auth/reset-password', { token, password });
+      
+      toast({
+        title: "Success",
+        description: "Your password has been reset successfully.",
+      });
+      router.push('/auth/login');
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.response?.data?.message || "Failed to reset password",
+        variant: "destructive",
+      });
+      throw error;
+    }
+  };
+
+  const verifyEmail = async (id: string, hash: string) => {
+    try {
+      await authClient.post('/auth/verify-email', { id, hash });
+      
+      toast({
+        title: "Success",
+        description: "Your email has been verified successfully.",
+      });
+      router.push('/auth/login');
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.response?.data?.message || "Failed to verify email",
+        variant: "destructive",
+      });
+      throw error;
+    }
+  };
 
   return (
     <AuthContext.Provider
@@ -234,20 +180,20 @@ const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         login,
         register,
         logout,
-        checkAuth,
+        forgotPassword,
+        resetPassword,
+        verifyEmail,
       }}
     >
       {children}
     </AuthContext.Provider>
   );
-};
+}
 
-const useAuth = () => {
+export function useAuth() {
   const context = useContext(AuthContext);
   if (!context) {
     throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
-};
-
-export { AuthProvider, useAuth };
+}
