@@ -43,7 +43,7 @@ export const API_ENDPOINTS = {
       START: (id: number) => `/vms/${id.toString()}/start`,
       STOP: (id: number) => `/vms/${id.toString()}/stop`,
       PAUSE: (id: number) => `/vms/${id.toString()}/pause`,
-      AVAILABLE_LOCATIONS: '/vms/available_locations'
+      AVAILABLE_LOCATIONS: '/ips/available_locations'
     }
   },
   
