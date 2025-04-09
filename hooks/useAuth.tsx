@@ -15,6 +15,7 @@ interface User {
 interface AuthContextType {
   user: User | null;
   loading: boolean;
+  isAuthenticated: boolean; // Ajout de cette propriété
   login: (email: string, password: string) => Promise<void>;
   register: (name: string, email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
@@ -29,6 +30,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Initialize with null, don't access localStorage during render
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isAuthenticated, setIsAuthenticated] = useState(false); // Nouvel état
   const router = useRouter();
 
   const authClient = getServiceClient('AUTH_SERVICE');
@@ -37,13 +39,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const storedUser = localStorage.getItem('user');
     if (storedUser) {
-      setUser(JSON.parse(storedUser));
+      const userData = JSON.parse(storedUser);
+      setUser(userData);
+      setIsAuthenticated(true); // Utilisateur authentifié
     }
     setLoading(false);
   }, []);
 
   const updateUser = (userData: User | null) => {
     setUser(userData);
+    setIsAuthenticated(!!userData); // Mettre à jour l'état d'authentification
+    
     if (userData) {
       localStorage.setItem('user', JSON.stringify(userData));
     } else {
@@ -95,8 +101,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // Supprimer l'utilisateur du localStorage
       localStorage.removeItem('user');
       
-      // Mettre à jour l'état de l'utilisateur
+      // Mettre à jour l'état de l'utilisateur et l'authentification
       setUser(null);
+      setIsAuthenticated(false);
       
       // Rediriger vers la page de connexion
       router.push('/');
@@ -177,6 +184,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       value={{
         user,
         loading,
+        isAuthenticated, // Ajout de cette propriété
         login,
         register,
         logout,

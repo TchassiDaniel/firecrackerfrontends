@@ -1,7 +1,12 @@
+"use client";
+
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-
+import { useAuth } from '@/hooks/useAuth';
 export default function PricingSection() {
+
+  const { isAuthenticated } = useAuth();
+
   const plans = [
     {
       name: "Basic",
@@ -17,7 +22,7 @@ export default function PricingSection() {
       ],
       color: "from-blue-400 to-blue-300",
       textColor: "text-blue-600",
-      buttonText: "Commencer",
+      buttonText: "Sélectionner",
       buttonColor: "bg-blue-500 hover:bg-blue-600"
     },
     {
@@ -75,7 +80,7 @@ export default function PricingSection() {
       ],
       color: "from-pink-500 to-rose-500",
       textColor: "text-rose-600",
-      buttonText: "Contacter",
+      buttonText: "Sélectionner",
       buttonColor: "bg-rose-600 hover:bg-rose-700"
     }
   ];
@@ -143,8 +148,10 @@ export default function PricingSection() {
                 <Button 
                   asChild 
                   className={`w-full py-3 px-4 rounded-xl font-medium text-white ${plan.buttonColor}`}
-                >
-                  <Link href="/auth/register">{plan.buttonText}</Link>
+                  >
+                  <Link href={isAuthenticated ? "/dashboard" : "/auth/register"}>
+                    {isAuthenticated ? "Selectionner" : plan.buttonText}
+                  </Link>
                 </Button>
               </div>
             </div>

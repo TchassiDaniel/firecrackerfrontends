@@ -71,7 +71,7 @@ export default function Navbar() {
               <div className="absolute -bottom-1 -right-1 h-3 w-3 bg-green-400 rounded-full border-2 border-white"></div>
             </div>
             <span className="text-2xl font-bold tracking-tight bg-gradient-to-r from-blue-600 to-blue-400 bg-clip-text text-transparent">
-              IAASFirecracker
+              TSORE IAAS
             </span>
           </Link>
 

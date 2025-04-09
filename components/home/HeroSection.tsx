@@ -1,8 +1,14 @@
+"use client";
+
 import Link from 'next/link';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
+import { useAuth } from '@/hooks/useAuth'; // Supposons que vous avez un contexte d'authentification
 
 export default function HeroSection() {
+  // Utiliser le hook d'authentification pour vérifier si l'utilisateur est connecté
+  const { isAuthenticated, user } = useAuth();
+  
   return (
     <section className="relative py-24 overflow-hidden">
       {/* Image d'arrière-plan avec superposition */}
@@ -40,28 +46,55 @@ export default function HeroSection() {
             </p>
             
             <div className="flex flex-wrap gap-4 pt-4">
-              <Button asChild size="lg" className="bg-blue-600 hover:bg-blue-700 text-white font-medium px-8 h-12 rounded-xl">
-                <Link href="/auth/register">Commencer maintenant</Link>
-              </Button>
-              
-              <Button asChild variant="outline" size="lg" className="border-2 border-white text-blue-700 hover:bg-white/10 font-medium px-8 h-12 rounded-xl backdrop-blur-sm">
-                <Link href="/auth/login">Se connecter</Link>
-              </Button>
+              {isAuthenticated ? (
+                // Boutons pour utilisateurs connectés
+                <Button asChild size="lg" className="bg-blue-600 hover:bg-blue-700 text-white font-medium px-8 h-12 rounded-xl">
+                  <Link href="/dashboard">Accéder au dashboard</Link>
+                </Button>
+              ) : (
+                // Boutons pour visiteurs non connectés
+                <>
+                  <Button asChild size="lg" className="bg-blue-600 hover:bg-blue-700 text-white font-medium px-8 h-12 rounded-xl">
+                    <Link href="/auth/register">Commencer maintenant</Link>
+                  </Button>
+                  
+                  <Button asChild variant="outline" size="lg" className="border-2 border-white text-blue-700 hover:bg-white/10 font-medium px-8 h-12 rounded-xl backdrop-blur-sm">
+                    <Link href="/auth/login">Se connecter</Link>
+                  </Button>
+                </>
+              )}
             </div>
             
-            <div className="flex items-center space-x-4 pt-6">
-              <div className="flex -space-x-2">
-                <Image src="/images/avatar.jpg" width={36} height={36} className="rounded-full border-2 border-white" alt="User" />
-                <Image src="/images/avatar1.jpg" width={36} height={36} className="rounded-full border-2 border-white" alt="User" />
-                <Image src="/images/avatar2.jpeg" width={36} height={36} className="rounded-full border-2 border-white" alt="User" />
+            {isAuthenticated ? (
+              // Message de bienvenue pour utilisateurs connectés
+              <div className="flex items-center space-x-4 pt-6">
+                <div className="flex items-center text-3xl">
+                    {user && 'avatar' in user && user.avatar ? (
+                    <Image src="/images/avatar3.jpeg" width={36} height={36} className="rounded-full border-2 border-white" alt="Votre avatar" />
+                  ) : (
+                    <div className="w-9 h-9 rounded-full bg-blue-600 flex items-center justify-center border-2 border-white">
+                      <span className="text-white font-semibold">{user?.name?.charAt(0) || 'U'}</span>
+                    </div>
+                  )}
+                  <span className="ml-3 font-medium">Bienvenue, {user?.name || 'utilisateur'}</span>
+                </div>
               </div>
-              <div className="text-sm">
-                <span className="font-semibold">+2500</span> utilisateurs satisfaits
+            ) : (
+              // Affichage standard pour visiteurs
+              <div className="flex items-center space-x-4 pt-6">
+                <div className="flex -space-x-2">
+                  <Image src="/images/avatar.jpg" width={36} height={36} className="rounded-full border-2 border-white" alt="User" />
+                  <Image src="/images/avatar1.jpg" width={36} height={36} className="rounded-full border-2 border-white" alt="User" />
+                  <Image src="/images/avatar2.jpeg" width={36} height={36} className="rounded-full border-2 border-white" alt="User" />
+                </div>
+                <div className="text-sm">
+                  <span className="font-semibold">+2500</span> utilisateurs satisfaits
+                </div>
               </div>
-            </div>
+            )}
           </div>
           
-          {/* Panneau de droite */}
+          {/* Panneau de droite - Terminal */}
           <div className="relative hidden lg:block">
             <div className="absolute -top-16 -left-16 w-64 h-64 bg-gradient-to-br from-blue-400 to-indigo-600 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob"></div>
             <div className="absolute -bottom-16 -right-16 w-64 h-64 bg-gradient-to-br from-purple-400 to-blue-600 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob animation-delay-2000"></div>
