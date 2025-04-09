@@ -28,7 +28,7 @@ const userId = user?.id;
 
 useEffect(() => {
   if (userId) {
-    fetchUserVirtualMachines(userId);
+    fetchUserVirtualMachines(Number(userId));
   }
 }, [userId]);
 
@@ -44,7 +44,7 @@ useEffect(() => {
       if (virtualMachines.length > 0) {
 
         //on cherche la vm dont l'id correspond a l'id dans l'url de la page
-        const selectedVm = virtualMachines.find((machine) => machine.id === params.id);
+        const selectedVm = virtualMachines.find((machine) => machine.id === Number(params.id));
        
         //vm sera vide si on ne trouve pas la vm selectionne
         setVm(selectedVm || null); 
@@ -56,12 +56,12 @@ useEffect(() => {
       try {
 
         const vmId = (params.id as string);
-        await updateVirtualMachineStatus(vmId, action);
+        await updateVirtualMachineStatus(Number(vmId), action);
         toast({
           title: 'Succès',
           description: `La machine virtuelle a bien été ${action === 'start' ? 'démarrée' : 'arrêtée'}.`,
         });
-        fetchUserVirtualMachines(userId as string); // Rafraîchir les données
+        fetchUserVirtualMachines(Number(userId)); // Rafraîchir les données
       } catch (error) {
         toast({
           title: 'Erreur',

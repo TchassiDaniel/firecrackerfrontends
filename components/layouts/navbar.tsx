@@ -111,14 +111,14 @@ export default function Navbar() {
                         <div className="relative">
                           <div className="h-9 w-9 rounded-full bg-gradient-to-r from-blue-600 to-blue-400 flex items-center justify-center">
                             <span className="text-white font-medium text-sm">
-                              {user.email.charAt(0).toUpperCase()}
+                              {user?.email ? user.email.charAt(0).toUpperCase() : ''}
                             </span>
                           </div>
                           <div className="absolute bottom-0 right-0 h-3 w-3 bg-green-400 rounded-full border-2 border-white"></div>
                         </div>
                         <div className="flex flex-col items-start">
-                          <span className="text-sm font-medium text-gray-700">{user.email}</span>
-                          <span className="text-xs text-blue-600 font-medium">{user.role}</span>
+                          <span className="text-sm font-medium text-gray-700">{user?.email || ''}</span>
+                          <span className="text-xs text-blue-600 font-medium">{user?.role || ''}</span>
                         </div>
                         <ChevronDown className="h-4 w-4 text-gray-500" />
                       </div>
@@ -128,12 +128,12 @@ export default function Navbar() {
                     <div className="flex items-center space-x-3 p-2 bg-gray-50 rounded-lg mb-2">
                       <div className="h-10 w-10 rounded-full bg-gradient-to-r from-blue-600 to-blue-400 flex items-center justify-center">
                         <span className="text-white font-medium">
-                          {user.email.charAt(0).toUpperCase()}
+                          {user?.email ? user.email.charAt(0).toUpperCase() : ''}
                         </span>
                       </div>
                       <div className="flex flex-col">
-                        <span className="text-sm font-medium text-gray-900">{user.email}</span>
-                        <span className="text-xs text-gray-500">{user.role}</span>
+                        <span className="text-sm font-medium text-gray-900">{user?.email || ''}</span>
+                        <span className="text-xs text-gray-500">{user?.role || ''}</span>
                       </div>
                     </div>
                     <DropdownMenuSeparator className="bg-gray-200" />
@@ -196,12 +196,12 @@ export default function Navbar() {
                     <div className="flex items-center space-x-3 p-2">
                       <div className="h-10 w-10 rounded-full bg-gradient-to-r from-blue-600 to-blue-400 flex items-center justify-center">
                         <span className="text-white font-medium">
-                          {user.email.charAt(0).toUpperCase()}
+                          {user?.email ? user.email.charAt(0).toUpperCase() : ''}
                         </span>
                       </div>
                       <div className="flex flex-col">
-                        <span className="text-sm font-medium text-gray-900">{user.email}</span>
-                        <span className="text-xs text-gray-500">{user.role}</span>
+                        <span className="text-sm font-medium text-gray-900">{user?.email || ''}</span>
+                        <span className="text-xs text-gray-500">{user?.role || ''}</span>
                       </div>
                     </div>
                     <DropdownMenuSeparator />
