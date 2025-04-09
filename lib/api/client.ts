@@ -12,8 +12,7 @@ const isDevelopment = process.env.NODE_ENV === 'development';
 
 const serviceUrls = {
   // For AUTH_SERVICE, we'll use our local proxy in development to avoid CORS issues
-  AUTH_SERVICE: isDevelopment ? '/api' : (process.env.NEXT_PUBLIC_AUTH_SERVICE_URL || ''),
-  //AUTH_SERVICE: process.env.NEXT_PUBLIC_AUTH_SERVICE_URL || '',
+  AUTH_SERVICE: isDevelopment? '/api' : (process.env.NEXT_PUBLIC_AUTH_SERVICE_URL || ''),
   USER_SERVICE: process.env.NEXT_PUBLIC_USER_SERVICE_URL || '',
   VM_SERVICE: process.env.NEXT_PUBLIC_VM_SERVICE_URL || '',
   NOTIFICATION_SERVICE: process.env.NEXT_PUBLIC_NOTIFICATION_SERVICE_URL || '',
@@ -47,7 +46,7 @@ const createClient = (serviceType: ServiceType) => {
   const config = SERVICE_CONFIG[serviceType];
   return axios.create({
     ...config,
-    withCredentials: true,
+    withCredentials: false,
     headers: {
       'Content-Type': 'application/json',
     },

@@ -95,12 +95,10 @@ export default function CreateVirtualMachinePage() {
   const { toast } = useToast();
   const { user } = useAuth();
   const {
-    systemImages,
     vmModels,
     locations,
     isLoading,
     error,
-    fetchSystemImages,
     fetchVMModels,
     fetchLocations,
     createVirtualMachine
@@ -125,7 +123,6 @@ export default function CreateVirtualMachinePage() {
     const loadData = async () => {
       try {
         await Promise.all([
-          fetchSystemImages(),
           fetchVMModels(),
           fetchLocations()
         ]);
@@ -208,15 +205,15 @@ export default function CreateVirtualMachinePage() {
             </div>
           </motion.div>
         ),
-        duration: 10000,
+        variant: "success"
       });
 
-      router.push("/virtual-machines");
-    } catch (error: any) {
+      router.push('/virtual-machines');
+    } catch (error) {
       toast({
-        variant: "destructive",
-        title: "Erreur",
-        description: error.message || "Une erreur est survenue",
+        title: "Erreur de création",
+        description: "Impossible de créer la machine virtuelle",
+        variant: "destructive"
       });
     } finally {
       setIsSubmitting(false);
@@ -415,7 +412,6 @@ export default function CreateVirtualMachinePage() {
                           </FormItem>
                         )}
                       />
-
                       <Button
                         type="submit"
                         className="w-full h-12 text-lg font-semibold bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 transition-all duration-300"
