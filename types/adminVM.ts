@@ -10,12 +10,14 @@ export interface AdminVirtualMachine {
     id: string;
     name: string;
     email: string;
+    role: string;
   };
   metrics?: {
     cpu_usage: number;
     memory_usage: number;
     disk_usage: number;
   };
+  created_at: string;
 }
 
 export interface AdminVMFilters {

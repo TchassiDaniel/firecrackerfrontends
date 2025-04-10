@@ -9,76 +9,89 @@ export const useUsers = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Obtenir le client pour le service utilisateur
-  const userClient = getServiceClient('USER_SERVICE');
+  // Initialize the client for the user service
+  const userClient = getServiceClient("USER_SERVICE");
 
   const fetchUsers = useCallback(async () => {
     try {
       setIsLoading(true);
       setError(null);
-      const response = await userClient.get(API_ENDPOINTS.USERS.endpoints.LIST);
+      const response = await userClient.get<User[]>(API_ENDPOINTS.USERS.endpoints.LIST);
       setUsers(response.data);
-    } catch (err) {
-      setError('Erreur lors du chargement des utilisateurs');
-      console.error(err);
+    } catch (err: any) {
+      setError(err instanceof Error ? err.message : 'Erreur lors du chargement des utilisateurs');
+      console.error('Erreur détaillée:', err);
+      if (err.response) {
+        console.error('Status:', err.response.status);
+        console.error('Data:', err.response.data);
+        console.error('Headers:', err.response.headers);
+      }
     } finally {
       setIsLoading(false);
     }
   }, []);
 
-  const getUser = async (id: string) => {
+  const getUser = useCallback(async (id: number): Promise<User> => {
     try {
       setIsLoading(true);
-      const response = await userClient.get(API_ENDPOINTS.USERS.endpoints.GET(id));
+      setError(null);
+      const response = await userClient.get<User>(API_ENDPOINTS.USERS.endpoints.GET(id));
       return response.data;
-    } catch (err) {
-      setError('Erreur lors du chargement de l\'utilisateur');
+    } catch (err: any) {
+      setError(err instanceof Error ? err.message : 'Erreur lors du chargement de l\'utilisateur');
+      console.error('Erreur détaillée:', err);
       throw err;
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
-  const createUser = async (data: Omit<User, 'id' | 'createdAt' | 'lastLogin'>) => {
+  const createUser = useCallback(async (data: Omit<User, 'id' | 'createdAt' | 'lastLogin'>): Promise<User> => {
     try {
       setIsLoading(true);
-      const response = await userClient.post(API_ENDPOINTS.USERS.endpoints.CREATE, data);
+      setError(null);
+      const response = await userClient.post<User>(API_ENDPOINTS.USERS.endpoints.CREATE, data);
       setUsers(prev => [...prev, response.data]);
       return response.data;
-    } catch (err) {
-      setError('Erreur lors de la création de l\'utilisateur');
+    } catch (err: any) {
+      setError(err instanceof Error ? err.message : 'Erreur lors de la création de l\'utilisateur');
+      console.error('Erreur détaillée:', err);
       throw err;
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
-  const updateUser = async (id: string, data: Partial<User>) => {
+  const updateUser = useCallback(async (id: number, data: Partial<User>): Promise<User> => {
     try {
       setIsLoading(true);
-      const response = await userClient.put(API_ENDPOINTS.USERS.endpoints.UPDATE(id), data);
-      setUsers(prev => prev.map(user => user.id === id ? response.data : user));
+      setError(null);
+      const response = await userClient.put<User>(API_ENDPOINTS.USERS.endpoints.UPDATE(id), data);
+      setUsers(prev => prev.map(user => Number(user.id) === id ? response.data : user));
       return response.data;
-    } catch (err) {
-      setError('Erreur lors de la mise à jour de l\'utilisateur');
+    } catch (err: any) {
+      setError(err instanceof Error ? err.message : 'Erreur lors de la mise à jour de l\'utilisateur');
+      console.error('Erreur détaillée:', err);
       throw err;
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
-  const deleteUser = async (id: string) => {
+  const deleteUser = useCallback(async (id: number) => {
     try {
       setIsLoading(true);
+      setError(null);
       await userClient.delete(API_ENDPOINTS.USERS.endpoints.DELETE(id));
-      setUsers(prev => prev.filter(user => user.id !== id));
-    } catch (err) {
-      setError('Erreur lors de la suppression de l\'utilisateur');
+      setUsers(prev => prev.filter(user => Number(user.id) !== id));
+    } catch (err: any) {
+      setError(err instanceof Error ? err.message : 'Erreur lors de la suppression de l\'utilisateur');
+      console.error('Erreur détaillée:', err);
       throw err;
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
   return {
     users,

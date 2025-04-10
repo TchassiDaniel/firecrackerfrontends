@@ -9,32 +9,22 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { useAdminVMs } from '@/hooks/useAdminVMs';
 
 export default function RecentActivity() {
-  // Ces données devraient venir de votre API
-  const activities = [
-    {
-      id: 1,
-      action: 'Création VM',
-      vm: 'vm-test-1',
-      user: 'junior@example.com',
-      date: '24/02/2025'
-    },
-    {
-      id: 2,
-      action: 'Arrêt VM',
-      vm: 'vm-prod-1',
-      user: 'admin@example.com',
-      date: '23/02/2025'
-    },
-    {
-      id: 3,
-      action: 'Démarrage VM',
-      vm: 'vm-dev-1',
-      user: 'test@example.com',
-      date: '22/02/2025'
-    }
-  ];
+  const { virtualMachines, isLoading } = useAdminVMs();
+
+
+
+  if (isLoading) {
+    return (
+      <Card className="p-6">
+        <div className="flex items-center justify-center py-8">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900"></div>
+        </div>
+      </Card>
+    );
+  }
 
   return (
     <Card className="p-6">
@@ -50,14 +40,7 @@ export default function RecentActivity() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {activities.map((activity) => (
-              <TableRow key={activity.id}>
-                <TableCell className="font-medium">{activity.action}</TableCell>
-                <TableCell>{activity.vm}</TableCell>
-                <TableCell>{activity.user}</TableCell>
-                <TableCell>{activity.date}</TableCell>
-              </TableRow>
-            ))}
+
           </TableBody>
         </Table>
       </div>

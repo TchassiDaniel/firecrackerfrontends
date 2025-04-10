@@ -82,7 +82,15 @@ export default function AdminDashboard() {
           {vmsError}
         </div>
       ) : (
-        <VMStatus recentVMs={virtualMachines} />
+        <VMStatus recentVMs={virtualMachines.map(vm => ({
+          id: vm.id,
+          name: vm.name,
+          status: vm.status,
+          owner: {
+            name: vm.user.name
+          },
+          created_at: vm.created_at
+        }))} />
       )}
 
       {/* Recent Users */}
@@ -95,7 +103,7 @@ export default function AdminDashboard() {
           {usersError}
         </div>
       ) : (
-        <RecentUsers recentUsers={users} />
+        <RecentUsers />
       )}
 
       {/* Recent Activity */}

@@ -37,7 +37,7 @@ export const API_ENDPOINTS = {
   VIRTUAL_MACHINES: {
     service: SERVICES.VM_SERVICE,
     endpoints: {
-      LIST: (id: number) => `/users/${id}/vms`,
+      LIST: "/vms",
       LIST_BY_USER: (userId: number) => `/users/${userId}/vms`,
       CREATE: "/vms",
       GET: (id: number) => `/vms/${id.toString()}`,
