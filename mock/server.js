@@ -12,7 +12,7 @@ const JWT_SECRET = 'your-secret-key';
 
 // Middleware
 app.use(cors({
-  origin: 'http://localhost:3000',
+  origin: 'http://localhost:8003',
   credentials: true
 }));
 app.use(express.json());

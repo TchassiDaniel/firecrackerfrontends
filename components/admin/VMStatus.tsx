@@ -2,33 +2,38 @@
 
 import { Card } from "@/components/ui/card";
 import { Play, Square, AlertTriangle, Loader2 } from "lucide-react";
+import { VMStatusProps } from '@/types/adminComponents';
 
-export default function VMStatus() {
+export default function VMStatus({ recentVMs }: VMStatusProps) {
+  const getStatusCount = (status: string) => {
+    return recentVMs.filter(vm => vm.status === status).length;
+  };
+
   const statuses = [
     {
       name: 'En cours',
-      value: '0',
+      value: getStatusCount('running'),
       icon: Play,
       color: 'text-green-600',
       bgColor: 'bg-green-100'
     },
     {
       name: 'Arrêtées',
-      value: '0',
+      value: getStatusCount('stopped'),
       icon: Square,
       color: 'text-red-600',
       bgColor: 'bg-red-100'
     },
     {
       name: 'En erreur',
-      value: '0',
+      value: getStatusCount('error'),
       icon: AlertTriangle,
       color: 'text-yellow-600',
       bgColor: 'bg-yellow-100'
     },
     {
       name: 'En création',
-      value: '0',
+      value: getStatusCount('creating'),
       icon: Loader2,
       color: 'text-blue-600',
       bgColor: 'bg-blue-100'

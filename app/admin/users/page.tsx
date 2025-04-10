@@ -40,29 +40,19 @@ import {
   FunnelIcon
 } from '@heroicons/react/24/outline';
 import { useToast } from '@/components/ui/use-toast';
-
-interface User {
-  id: string;
-  name: string;
-  email: string;
-  role: 'admin' | 'user';
-  virtualMachinesCount: number;
-  created_at: string;
-}
+import { useUsers } from '@/hooks/useUsers';
+import { User } from '@/types/user';
 
 export default function UsersPage() {
   const { toast } = useToast();
-  const [isLoading, setIsLoading] = useState(true);
-  const [users, setUsers] = useState<User[]>([]);
+  const { users, isLoading,fetchUsers, deleteUser } = useUsers();
   const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
-  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [roleFilter, setRoleFilter] = useState<'all' | 'admin' | 'user'>('all');
 
   useEffect(() => {
     fetchUsers();
-    fetchCurrentUser();
-  }, []);
+  }, [fetchUsers]);
 
   useEffect(() => {
     filterUsers();
@@ -87,56 +77,16 @@ export default function UsersPage() {
     setFilteredUsers(filtered);
   };
 
-  const fetchUsers = async () => {
-    try {
-      const response = await fetch('/api/admin/users');
-      if (!response.ok) {
-        throw new Error('Erreur lors du chargement des utilisateurs');
-      }
-      const data = await response.json();
-      setUsers(data);
-      setFilteredUsers(data);
-    } catch (error) {
-      toast({
-        title: 'Erreur',
-        description: 'Impossible de charger la liste des utilisateurs',
-        variant: 'destructive',
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
-  const fetchCurrentUser = async () => {
-    try {
-      const response = await fetch('/api/auth/me');
-      if (!response.ok) {
-        throw new Error('Erreur lors du chargement du profil');
-      }
-      const data = await response.json();
-      setCurrentUserId(data.id);
-    } catch (error) {
-      console.error('Erreur lors du chargement du profil:', error);
-    }
-  };
 
   const handleDeleteUser = async (userId: string) => {
     try {
-      const response = await fetch(`/api/admin/users/${userId}`, {
-        method: 'DELETE',
-      });
-
-      if (!response.ok) {
-        throw new Error('Erreur lors de la suppression');
-      }
-
+      await deleteUser(userId);
       toast({
         title: 'Succès',
         description: 'Utilisateur supprimé avec succès',
         variant: 'default',
       });
-
-      fetchUsers();
     } catch (error) {
       toast({
         title: 'Erreur',
@@ -252,11 +202,11 @@ export default function UsersPage() {
                       </TableCell>
                       <TableCell>
                         <Badge variant="outline" className="bg-gray-100">
-                          {user.virtualMachinesCount}
+                          {user.virtualMachines?.length || 0}
                         </Badge>
                       </TableCell>
                       <TableCell className="text-gray-600">
-                        {new Date(user.created_at).toLocaleDateString('fr-FR', {
+                        {new Date(user.createdAt).toLocaleDateString('fr-FR', {
                           day: '2-digit',
                           month: '2-digit',
                           year: 'numeric',
@@ -276,37 +226,35 @@ export default function UsersPage() {
                             </Button>
                           </Link>
 
-                          {user.id !== currentUserId && (
-                            <AlertDialog>
-                              <AlertDialogTrigger asChild>
-                                <Button 
-                                  variant="outline" 
-                                  size="sm"
-                                  className="hover:bg-red-50 hover:text-red-600 hover:border-red-300"
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button 
+                                variant="outline" 
+                                size="sm"
+                                className="hover:bg-red-50 hover:text-red-600 hover:border-red-300"
+                              >
+                                <TrashIcon className="h-4 w-4" />
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Confirmer la suppression</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Êtes-vous sûr de vouloir supprimer cet utilisateur ?
+                                  Cette action est irréversible.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Annuler</AlertDialogCancel>
+                                <AlertDialogAction
+                                  onClick={() => handleDeleteUser(user.id)}
+                                  className="bg-red-600 hover:bg-red-700"
                                 >
-                                  <TrashIcon className="h-4 w-4" />
-                                </Button>
-                              </AlertDialogTrigger>
-                              <AlertDialogContent>
-                                <AlertDialogHeader>
-                                  <AlertDialogTitle>Confirmer la suppression</AlertDialogTitle>
-                                  <AlertDialogDescription>
-                                    Êtes-vous sûr de vouloir supprimer cet utilisateur ?
-                                    Cette action est irréversible.
-                                  </AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <AlertDialogFooter>
-                                  <AlertDialogCancel>Annuler</AlertDialogCancel>
-                                  <AlertDialogAction
-                                    onClick={() => handleDeleteUser(user.id)}
-                                    className="bg-red-600 hover:bg-red-700"
-                                  >
-                                    Supprimer
-                                  </AlertDialogAction>
-                                </AlertDialogFooter>
-                              </AlertDialogContent>
-                            </AlertDialog>
-                          )}
+                                  Supprimer
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
                         </div>
                       </TableCell>
                     </TableRow>

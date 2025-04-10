@@ -1,7 +1,6 @@
 // lib/api/client.ts
 import axios from 'axios';
-
-export type ServiceType = 'AUTH_SERVICE' | 'USER_SERVICE' | 'VM_SERVICE' | 'NOTIFICATION_SERVICE' | 'SYSTEM_IMAGES_SERVICE';
+import { ServiceType } from '@/lib/apiEndpoints';
 
 interface ServiceConfig {
   baseURL: string;
@@ -17,6 +16,7 @@ const serviceUrls = {
   VM_SERVICE: process.env.NEXT_PUBLIC_VM_SERVICE_URL || '',
   NOTIFICATION_SERVICE: process.env.NEXT_PUBLIC_NOTIFICATION_SERVICE_URL || '',
   SYSTEM_IMAGES_SERVICE: process.env.NEXT_PUBLIC_SYSTEM_IMAGES_SERVICE_URL || '',
+  ADMIN_SERVICE: process.env.NEXT_PUBLIC_ADMIN_SERVICE_URL || '',
 };
 
 const SERVICE_CONFIG: Record<ServiceType, ServiceConfig> = {
@@ -38,6 +38,10 @@ const SERVICE_CONFIG: Record<ServiceType, ServiceConfig> = {
   },
   SYSTEM_IMAGES_SERVICE: {
     baseURL: serviceUrls.SYSTEM_IMAGES_SERVICE || '',
+    timeout: 5000,
+  },
+  ADMIN_SERVICE: {
+    baseURL: serviceUrls.ADMIN_SERVICE || '',
     timeout: 5000,
   },
 };

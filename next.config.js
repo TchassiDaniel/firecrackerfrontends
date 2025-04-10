@@ -5,11 +5,11 @@ const nextConfig = {
     return [
       {
         source: '/api/auth/:path*',
-        destination: 'http://192.168.1.143:8079/auth/:path*'
+        destination: 'http://85.214.142.178:9010/auth/:path*'
       },
       {
         source: '/api/vm-manager/:path*',
-        destination: 'http://192.168.1.143:8003/vm-manager/:path*'
+        destination: 'http://85.214.142.178:9010/vm-manager/:path*'
       },
       
     ];

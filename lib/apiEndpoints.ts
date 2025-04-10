@@ -5,7 +5,8 @@ export const SERVICES = {
   USER_SERVICE: 'user-service',
   VM_SERVICE: 'vm-service',
   NOTIFICATION_SERVICE: 'notification-service',
-  SYSTEM_IMAGES_SERVICE :'system-images-service'
+  SYSTEM_IMAGES_SERVICE: 'system-images-service',
+  ADMIN_SERVICE: 'admin-service'
 } as const;
 
 // Type pour les services
@@ -77,4 +78,14 @@ export const API_ENDPOINTS = {
     }
   },
   
+  ADMIN: {
+    service: SERVICES.ADMIN_SERVICE,
+    endpoints: {
+      STATS: '/admin/stats',
+      USAGE_STATS: '/admin/usage-stats',
+      RECENT_USERS: '/admin/recent-users',
+      RECENT_VMS: '/admin/recent-vms',
+      DASHBOARD: '/admin/dashboard'
+    }
+  }
 } as const;

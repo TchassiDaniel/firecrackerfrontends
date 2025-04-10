@@ -67,11 +67,13 @@ import type {
   VMStatusHistory 
 } from "@/types/virtualMachine";
 
+
 export default function VirtualMachinePage() {
   const { id } = useParams();
   const router = useRouter();
   const { toast } = useToast();
   const vmId = parseInt(Array.isArray(id) ? id[0] : id || "0");
+  
   
   const { 
     selectedVM: vm,
