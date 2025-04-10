@@ -5,24 +5,22 @@ import { useRouter } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
-import { 
-  ArrowLeft, 
-  Check, 
-  Server, 
-  Globe, 
-  Lock, 
-  Terminal,
+import {
+  ArrowLeft,
+  Check,
+  Server,
+  Globe,
+  Lock,
   Cpu,
   MemoryStick,
   HardDrive,
   Cloud,
-  Power
+  Power,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Form,
   FormControl,
-  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -39,7 +37,7 @@ import {
 import { useToast } from "@/components/ui/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useVirtualMachines } from "@/hooks/useVirtualMachines";
-import { SystemImage, VMmodels } from "@/types/virtualMachine";
+import type { VMmodels } from "@/types/virtualMachine";
 import {
   Select,
   SelectContent,
@@ -64,13 +62,13 @@ const formSchema = z.object({
     ),
   model_id: z.number().min(1, "Veuillez sélectionner un modèle de VM"),
   location: z.string().min(1, "Veuillez sélectionner une localisation"),
-  owner_id: z.number().optional()
+  owner_id: z.number().optional(),
 });
 
 const fadeInUp = {
   initial: { opacity: 0, y: 20 },
   animate: { opacity: 1, y: 0 },
-  exit: { opacity: 0, y: -20 }
+  exit: { opacity: 0, y: -20 },
 };
 
 const StatsCard = ({ icon: Icon, title, value, color }: any) => (
@@ -79,7 +77,7 @@ const StatsCard = ({ icon: Icon, title, value, color }: any) => (
     className={`bg-white rounded-xl p-4 shadow-lg border-l-4 ${color}`}
   >
     <div className="flex items-center gap-3">
-      <div className={`p-2 rounded-lg ${color.replace('border', 'bg')}`}>
+      <div className={`p-2 rounded-lg ${color.replace("border", "bg")}`}>
         <Icon className="w-5 h-5 text-white" />
       </div>
       <div>
@@ -101,7 +99,7 @@ export default function CreateVirtualMachinePage() {
     error,
     fetchVMModels,
     fetchLocations,
-    createVirtualMachine
+    createVirtualMachine,
   } = useVirtualMachines();
 
   const [selectedModel, setSelectedModel] = useState<VMmodels | null>(null);
@@ -115,17 +113,24 @@ export default function CreateVirtualMachinePage() {
       password: "",
       model_id: 1,
       location: "",
-      owner_id: Number(user?.id) || 1
+      owner_id: Number(user?.id) || 1,
     },
   });
 
   useEffect(() => {
+    // Surveiller les erreurs du formulaire
+    if (
+      form.formState.errors &&
+      Object.keys(form.formState.errors).length > 0
+    ) {
+      console.log("Erreurs de formulaire:", form.formState.errors);
+    }
+  }, [form.formState.errors]);
+
+  useEffect(() => {
     const loadData = async () => {
       try {
-        await Promise.all([
-          fetchVMModels(),
-          fetchLocations()
-        ]);
+        await Promise.all([fetchVMModels(), fetchLocations()]);
       } catch (error) {
         toast({
           variant: "destructive",
@@ -136,13 +141,53 @@ export default function CreateVirtualMachinePage() {
     };
 
     loadData();
-  }, []);
+  }, [fetchVMModels, fetchLocations, toast]);
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
+    console.log("Formulaire soumis avec les valeurs:", values);
+
+    // Vérifier si tous les champs requis sont remplis
+    if (
+      !values.name ||
+      !values.password ||
+      !values.model_id ||
+      !values.location
+    ) {
+      console.error("Formulaire incomplet:", {
+        name: !!values.name,
+        password: !!values.password,
+        model_id: !!values.model_id,
+        location: !!values.location,
+      });
+
+      toast({
+        title: "Formulaire incomplet",
+        description: "Veuillez remplir tous les champs obligatoires",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsSubmitting(true);
     try {
-      const result = await createVirtualMachine(values);
-      
+      console.log("Appel de createVirtualMachine avec:", values);
+
+      // Créer une promesse avec un timeout de 2 minutes
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(
+          () => reject(new Error("Délai d'attente dépassé (2 minutes)")),
+          120000
+        );
+      });
+
+      // Utiliser Promise.race pour comparer quelle promesse se termine en premier
+      const result = (await Promise.race([
+        createVirtualMachine(values),
+        timeoutPromise,
+      ])) as any; // Le type any est utilisé ici pour simplifier, à adapter selon vos types
+
+      console.log("Résultat de createVirtualMachine:", result);
+
       toast({
         title: "Nouvelle machine virtuelle créée",
         description: (
@@ -155,7 +200,9 @@ export default function CreateVirtualMachinePage() {
           >
             <div className="flex items-center gap-2 mb-4">
               <Power className="w-5 h-5 text-green-500" />
-              <span className="font-medium">Configuration terminée avec succès</span>
+              <span className="font-medium">
+                Configuration terminée avec succès
+              </span>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <StatsCard
@@ -205,15 +252,19 @@ export default function CreateVirtualMachinePage() {
             </div>
           </motion.div>
         ),
-        variant: "success"
+        variant: "success",
       });
 
-      router.push('/virtual-machines');
+      router.push("/virtual-machines");
     } catch (error) {
+      console.error("Erreur lors de la création:", error);
       toast({
         title: "Erreur de création",
-        description: "Impossible de créer la machine virtuelle",
-        variant: "destructive"
+        description:
+          error instanceof Error
+            ? error.message
+            : "Impossible de créer la machine virtuelle",
+        variant: "destructive",
       });
     } finally {
       setIsSubmitting(false);
@@ -224,6 +275,7 @@ export default function CreateVirtualMachinePage() {
     const model = vmModels.find((m) => m.id === Number(modelId));
     setSelectedModel(model || null);
     form.setValue("model_id", Number(modelId));
+    form.trigger("model_id"); // Déclencher la validation
   };
 
   if (isLoading) {
@@ -283,7 +335,10 @@ export default function CreateVirtualMachinePage() {
             </CardHeader>
             <CardContent>
               <Form {...form}>
-                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                <form
+                  onSubmit={form.handleSubmit(onSubmit)}
+                  className="space-y-6"
+                >
                   <AnimatePresence mode="wait">
                     <motion.div
                       key={currentStep}
@@ -292,140 +347,190 @@ export default function CreateVirtualMachinePage() {
                       exit={{ opacity: 0, x: -20 }}
                       className="space-y-6"
                     >
-                      {/* Location Selection */}
-                      <FormField
-                        control={form.control}
-                        name="location"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel className="text-lg font-semibold">
-                              Localisation
-                            </FormLabel>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                              {locations.map((location) => (
-                                <motion.div
-                                  whileHover={{ scale: 1.02 }}
-                                  whileTap={{ scale: 0.98 }}
-                                  key={location}
-                                  onClick={() => field.onChange(location)}
-                                  className={`
-                                    relative p-4 rounded-xl cursor-pointer
-                                    transition-all duration-300
-                                    ${field.value === location
-                                      ? 'bg-blue-50 border-2 border-blue-500'
-                                      : 'bg-gray-50 border-2 border-gray-200 hover:border-blue-200'}
-                                  `}
-                                >
-                                  <div className="flex items-center gap-3">
-                                    <Globe className={`w-5 h-5 ${field.value === location ? 'text-blue-500' : 'text-gray-500'}`} />
-                                    <span className="font-medium">{location}</span>
-                                  </div>
-                                  {field.value === location && (
+                      {currentStep === 1 ? (
+                        <>
+                          {/* Location Selection */}
+                          <FormField
+                            control={form.control}
+                            name="location"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel className="text-lg font-semibold">
+                                  Localisation
+                                </FormLabel>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                  {locations.map((location) => (
                                     <motion.div
-                                      initial={{ scale: 0 }}
-                                      animate={{ scale: 1 }}
-                                      className="absolute top-2 right-2"
+                                      whileHover={{ scale: 1.02 }}
+                                      whileTap={{ scale: 0.98 }}
+                                      key={location}
+                                      onClick={() => field.onChange(location)}
+                                      className={`
+                                        relative p-4 rounded-xl cursor-pointer
+                                        transition-all duration-300
+                                        ${
+                                          field.value === location
+                                            ? "bg-blue-50 border-2 border-blue-500"
+                                            : "bg-gray-50 border-2 border-gray-200 hover:border-blue-200"
+                                        }
+                                      `}
                                     >
-                                      <Check className="w-4 h-4 text-blue-500" />
+                                      <div className="flex items-center gap-3">
+                                        <Globe
+                                          className={`w-5 h-5 ${
+                                            field.value === location
+                                              ? "text-blue-500"
+                                              : "text-gray-500"
+                                          }`}
+                                        />
+                                        <span className="font-medium">
+                                          {location}
+                                        </span>
+                                      </div>
+                                      {field.value === location && (
+                                        <motion.div
+                                          initial={{ scale: 0 }}
+                                          animate={{ scale: 1 }}
+                                          className="absolute top-2 right-2"
+                                        >
+                                          <Check className="w-4 h-4 text-blue-500" />
+                                        </motion.div>
+                                      )}
                                     </motion.div>
-                                  )}
-                                </motion.div>
-                              ))}
-                            </div>
-                          </FormItem>
-                        )}
-                      />
+                                  ))}
+                                </div>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
 
-                      {/* VM Name */}
-                      <FormField
-                        control={form.control}
-                        name="name"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel className="text-lg font-semibold">
-                              Nom de la machine
-                            </FormLabel>
-                            <FormControl>
-                              <Input
-                                {...field}
-                                className="h-12 text-lg"
-                                placeholder="ex: production-server-01"
-                              />
-                            </FormControl>
-                          </FormItem>
-                        )}
-                      />
+                          {/* VM Name */}
+                          <FormField
+                            control={form.control}
+                            name="name"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel className="text-lg font-semibold">
+                                  Nom de la machine
+                                </FormLabel>
+                                <FormControl>
+                                  <Input
+                                    {...field}
+                                    className="h-12 text-lg"
+                                    placeholder="ex: production-server-01"
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </>
+                      ) : (
+                        <>
+                          {/* Model Selection */}
+                          <FormField
+                            control={form.control}
+                            name="model_id"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel className="text-lg font-semibold">
+                                  Modèle
+                                </FormLabel>
+                                <Select
+                                  onValueChange={handleModelChange}
+                                  defaultValue={field.value.toString()}
+                                >
+                                  <FormControl>
+                                    <SelectTrigger className="h-12">
+                                      <SelectValue placeholder="Sélectionnez un modèle" />
+                                    </SelectTrigger>
+                                  </FormControl>
+                                  <SelectContent>
+                                    {vmModels.map((model) => (
+                                      <SelectItem
+                                        key={model.id}
+                                        value={model.id.toString()}
+                                        className="py-3"
+                                      >
+                                        <div className="flex items-center gap-2">
+                                          <Server className="w-4 h-4" />
+                                          <span>{model.distribution_name}</span>
+                                        </div>
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
 
-                      {/* Model Selection */}
-                      <FormField
-                        control={form.control}
-                        name="model_id"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel className="text-lg font-semibold">
-                              Modèle
-                            </FormLabel>
-                            <Select
-                              onValueChange={handleModelChange}
-                              defaultValue={field.value.toString()}
-                            >
-                              <FormControl>
-                                <SelectTrigger className="h-12">
-                                  <SelectValue placeholder="Sélectionnez un modèle" />
-                                </SelectTrigger>
-                              </FormControl>
-                              <SelectContent>
-                                {vmModels.map((model) => (
-                                  <SelectItem
-                                    key={model.id}
-                                    value={model.id.toString()}
-                                    className="py-3"
-                                  >
-                                    <div className="flex items-center gap-2">
-                                      <Server className="w-4 h-4" />
-                                      <span>{model.distribution_name}</span>
-                                    </div>
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </FormItem>
-                        )}
-                      />
-
-                      {/* Password */}
-                      <FormField
-                        control={form.control}
-                        name="password"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel className="text-lg font-semibold">
-                              Mot de passe root
-                            </FormLabel>
-                            <FormControl>
-                              <Input
-                                type="password"
-                                className="h-12"
-                                {...field}
-                              />
-                            </FormControl>
-                          </FormItem>
-                        )}
-                      />
-                      <Button
-                        type="submit"
-                        className="w-full h-12 text-lg font-semibold bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 transition-all duration-300"
-                        disabled={isSubmitting}
-                      >
-                        {isSubmitting ? (
-                          <div className="flex items-center gap-2">
-                            <span className="animate-spin">◌</span>
-                            Création en cours...
-                          </div>
-                        ) : (
-                          "Créer la machine virtuelle"
-                        )}
-                      </Button>
+                          {/* Password */}
+                          <FormField
+                            control={form.control}
+                            name="password"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel className="text-lg font-semibold">
+                                  Mot de passe root
+                                </FormLabel>
+                                <FormControl>
+                                  <Input
+                                    type="password"
+                                    className="h-12"
+                                    {...field}
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </>
+                      )}
+                      {currentStep === 1 ? (
+                        <Button
+                          type="button"
+                          className="w-full h-12 text-lg font-semibold bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 transition-all duration-300"
+                          onClick={() => {
+                            form
+                              .trigger(["location", "name"])
+                              .then((isValid) => {
+                                if (isValid) setCurrentStep(2);
+                              });
+                          }}
+                        >
+                          Continuer
+                        </Button>
+                      ) : (
+                        <div className="flex gap-4">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            className="w-1/3 h-12 text-lg font-semibold"
+                            onClick={() => setCurrentStep(1)}
+                          >
+                            Retour
+                          </Button>
+                          <Button
+                            type="button" // Changé de "submit" à "button"
+                            className="w-2/3 h-12 text-lg font-semibold bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 transition-all duration-300"
+                            disabled={isSubmitting}
+                            onClick={() => {
+                              console.log("Bouton Créer cliqué");
+                              form.handleSubmit(onSubmit)();
+                            }}
+                          >
+                            {isSubmitting ? (
+                              <div className="flex items-center gap-2">
+                                <span className="animate-spin">◌</span>
+                                Création en cours...
+                              </div>
+                            ) : (
+                              "Créer la machine virtuelle"
+                            )}
+                          </Button>
+                        </div>
+                      )}
                     </motion.div>
                   </AnimatePresence>
                 </form>
@@ -459,29 +564,38 @@ export default function CreateVirtualMachinePage() {
                           <Cpu className="w-4 h-4 text-blue-500" />
                           <span className="text-sm text-gray-600">CPU</span>
                         </div>
-                        <p className="text-xl font-semibold">{selectedModel.cpu} cœurs</p>
+                        <p className="text-xl font-semibold">
+                          {selectedModel.cpu} cœurs
+                        </p>
                       </div>
                       <div className="bg-gray-50 p-4 rounded-xl">
                         <div className="flex items-center gap-2 mb-2">
-                          
                           <MemoryStick className="w-4 h-4 text-purple-500" />
                           <span className="text-sm text-gray-600">RAM</span>
                         </div>
-                        <p className="text-xl font-semibold">{selectedModel.ram} MB</p>
+                        <p className="text-xl font-semibold">
+                          {selectedModel.ram} MB
+                        </p>
                       </div>
                       <div className="bg-gray-50 p-4 rounded-xl">
                         <div className="flex items-center gap-2 mb-2">
                           <HardDrive className="w-4 h-4 text-orange-500" />
-                          <span className="text-sm text-gray-600">Stockage</span>
+                          <span className="text-sm text-gray-600">
+                            Stockage
+                          </span>
                         </div>
-                        <p className="text-xl font-semibold">{selectedModel.storage} GB</p>
+                        <p className="text-xl font-semibold">
+                          {selectedModel.storage} GB
+                        </p>
                       </div>
                       <div className="bg-gray-50 p-4 rounded-xl">
                         <div className="flex items-center gap-2 mb-2">
                           <Cloud className="w-4 h-4 text-green-500" />
                           <span className="text-sm text-gray-600">Type</span>
                         </div>
-                        <p className="text-xl font-semibold">{selectedModel.distribution_name}</p>
+                        <p className="text-xl font-semibold">
+                          {selectedModel.distribution_name}
+                        </p>
                       </div>
                     </div>
                   </motion.div>

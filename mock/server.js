@@ -1,25 +1,27 @@
-const express = require('express');
-const cors = require('cors');
-const fs = require('fs');
-const path = require('path');
-const jwt = require('jsonwebtoken');
-const bcrypt = require('bcryptjs');
-const cookieParser = require('cookie-parser');
+const express = require("express");
+const cors = require("cors");
+const fs = require("fs");
+const path = require("path");
+const jwt = require("jsonwebtoken");
+const bcrypt = require("bcryptjs");
+const cookieParser = require("cookie-parser");
 
 const app = express();
 const port = 3002;
-const JWT_SECRET = 'your-secret-key';
+const JWT_SECRET = "your-secret-key";
 
 // Middleware
-app.use(cors({
-  origin: 'http://localhost:3000',
-  credentials: true
-}));
+app.use(
+  cors({
+    origin: "http://localhost:3000",
+    credentials: true,
+  })
+);
 app.use(express.json());
 app.use(cookieParser());
 
 // Charger la base de données mock
-const dbPath = path.join(__dirname, 'db.json');
+const dbPath = path.join(__dirname, "db.json");
 const getDb = () => {
   const rawData = fs.readFileSync(dbPath);
   return JSON.parse(rawData);
@@ -32,10 +34,11 @@ const saveDb = (db) => {
 
 // Middleware d'authentification
 const authenticateToken = (req, res, next) => {
-  const token = req.cookies.token || req.headers['authorization']?.split(' ')[1];
-  
+  const token =
+    req.cookies.token || req.headers["authorization"]?.split(" ")[1];
+
   if (!token) {
-    return res.status(401).json({ message: 'Authentication required' });
+    return res.status(401).json({ message: "Authentication required" });
   }
 
   try {
@@ -43,185 +46,197 @@ const authenticateToken = (req, res, next) => {
     req.user = decoded;
     next();
   } catch (err) {
-    return res.status(403).json({ message: 'Invalid token' });
+    return res.status(403).json({ message: "Invalid token" });
   }
 };
 
 // Ajouter un délai artificiel
-const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
-// Routes pour la connexion 
-app.post('/api/auth/login', async (req, res) => {
+// Routes pour la connexion
+app.post("/api/auth/login", async (req, res) => {
   await delay(500);
   const { email, password } = req.body;
   const db = getDb();
-  
+
   //on verifie si l'utilisateur est dans la bd
-  const user = db.users.find(u => u.email === email); //je chercher l'email dans la bd
-  
+  const user = db.users.find((u) => u.email === email); //je chercher l'email dans la bd
+
   if (!user) {
-    return res.status(405).json({ message: 'utilisateur non trouve ' });
+    return res.status(405).json({ message: "utilisateur non trouve " });
   }
 
   //on verifie que le mot de passe est correcte
   if (user.password !== password) {
-    return res.status(401).json({ message: 'mot de passe incorrect' });
+    return res.status(401).json({ message: "mot de passe incorrect" });
   }
-  
+
   //token pour la session
   const token = jwt.sign(
     { id: user.id, email: user.email, role: user.role },
     JWT_SECRET,
-    { expiresIn: '24h' }
+    { expiresIn: "24h" }
   );
-  
+
   //cookie pour le token pour la session
-  res.cookie('token', token, {
+  res.cookie("token", token, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
-    maxAge: 24 * 60 * 60 * 1000 // 24 heures
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    maxAge: 24 * 60 * 60 * 1000, // 24 heures
   });
-  
+
   // Préparer la réponse
   res.json({
     id: parseInt(user.id),
     name: user.name,
     email: user.email,
-    role: user.role
+    role: user.role,
   });
 });
 
 //routes pour la deconnnexion
-app.post('/api/auth/logout', (req, res) => {
-  res.clearCookie('token');
-  res.json({ message: 'Logged out successfully' });
+app.post("/api/auth/logout", (req, res) => {
+  res.clearCookie("token");
+  res.json({ message: "Logged out successfully" });
 });
 
 //routes pour get un utilisateurs
-app.get('/api/auth/user', authenticateToken, async (req, res) => {
+app.get("/api/auth/user", authenticateToken, async (req, res) => {
   await delay(500);
   const db = getDb();
-  const user = db.users.find(u => u.id === req.user.id);
-  
+  const user = db.users.find((u) => u.id === req.user.id);
+
   if (!user) {
-    return res.status(404).json({ message: 'utilisateur non trouve' });
+    return res.status(404).json({ message: "utilisateur non trouve" });
   }
-  
+
   res.json({
     id: parseInt(user.id),
     name: user.name,
     email: user.email,
-    role: user.role
+    role: user.role,
   });
 });
 
 // --- ROUTES POUR LES MACHINES VIRTUELLES ---
 
 // Récupérer toutes les VMs (avec filtres)
-app.get('/api/vms', authenticateToken, async (req, res) => {
+app.get("/api/vms", authenticateToken, async (req, res) => {
   await delay(500);
   const db = getDb();
   let vms = db.vms || [];
 
   // Filtrer les VMs selon le rôle de l'utilisateur
-  if (req.user.role !== 'admin') {
-    vms = vms.filter(vm => vm.user.id === req.user.id);
+  if (req.user.role !== "admin") {
+    vms = vms.filter((vm) => vm.user.id === req.user.id);
   }
 
   // Appliquer les filtres
   const { status, user, search } = req.query;
-  
+
   if (status) {
-    vms = vms.filter(vm => vm.status === status);
+    vms = vms.filter((vm) => vm.status === status);
   }
-  
-  if (user && req.user.role === 'admin') {
-    vms = vms.filter(vm => vm.user.id === user);
+
+  if (user && req.user.role === "admin") {
+    vms = vms.filter((vm) => vm.user.id === user);
   }
-  
+
   if (search) {
     const searchLower = search.toLowerCase();
-    vms = vms.filter(vm => 
-      vm.name.toLowerCase().includes(searchLower) ||
-      vm.user.name.toLowerCase().includes(searchLower)
+    vms = vms.filter(
+      (vm) =>
+        vm.name.toLowerCase().includes(searchLower) ||
+        vm.user.name.toLowerCase().includes(searchLower)
     );
   }
 
-  res.json(vms.map(vm => ({
-    ...vm,
-    id: parseInt(vm.id),
-    user: {
-      ...vm.user,
-      id: parseInt(vm.user.id)
-    },
-    systemImage: {
-      ...vm.systemImage,
-      id: parseInt(vm.systemImage.id)
-    }
-  })));
+  res.json(
+    vms.map((vm) => ({
+      ...vm,
+      id: parseInt(vm.id),
+      user: {
+        ...vm.user,
+        id: parseInt(vm.user.id),
+      },
+      systemImage: {
+        ...vm.systemImage,
+        id: parseInt(vm.systemImage.id),
+      },
+    }))
+  );
 });
 
 // Récupérer une VM spécifique
-app.get('/api/vms/:id', authenticateToken, async (req, res) => {
+app.get("/api/vms/:id", authenticateToken, async (req, res) => {
   await delay(500);
   const db = getDb();
-  const vm = (db.vms || []).find(v => v.id === req.params.id);
-  
+  const vm = (db.vms || []).find((v) => v.id === req.params.id);
+
   if (!vm) {
     return res.status(404).json({ error: "VM not found" });
   }
-  
+
   // Vérifier si l'utilisateur a accès à cette VM
-  if (req.user.role !== 'admin' && vm.user.id !== req.user.id) {
-    return res.status(403).json({ message: 'Access denied' });
+  if (req.user.role !== "admin" && vm.user.id !== req.user.id) {
+    return res.status(403).json({ message: "Access denied" });
   }
-  
+
   res.json({
     ...vm,
     id: parseInt(vm.id),
     user: {
       ...vm.user,
-      id: parseInt(vm.user.id)
+      id: parseInt(vm.user.id),
     },
     systemImage: {
       ...vm.systemImage,
-      id: parseInt(vm.systemImage.id)
-    }
+      id: parseInt(vm.systemImage.id),
+    },
   });
 });
 
 // Créer une nouvelle VM
-app.post('/api/vms', authenticateToken, async (req, res) => {
+app.post("/api/vms", authenticateToken, async (req, res) => {
   await delay(1000);
   const db = getDb();
-  
-  const { name, vcpu_count, memory_size_mib, disk_size_gb, system_image_id } = req.body;
-  
-  if (!name || !vcpu_count || !memory_size_mib || !disk_size_gb || !system_image_id) {
-    return res.status(400).json({ message: 'All fields are required' });
+
+  const { name, vcpu_count, memory_size_mib, disk_size_gb, system_image_id } =
+    req.body;
+
+  if (
+    !name ||
+    !vcpu_count ||
+    !memory_size_mib ||
+    !disk_size_gb ||
+    !system_image_id
+  ) {
+    return res.status(400).json({ message: "All fields are required" });
   }
-  
+
   // Trouver l'image système
-  const systemImage = db['system-images'].find(img => img.id === system_image_id);
+  const systemImage = db["system-images"].find(
+    (img) => img.id === system_image_id
+  );
   if (!systemImage) {
-    return res.status(404).json({ message: 'System image not found' });
+    return res.status(404).json({ message: "System image not found" });
   }
-  
+
   // Trouver l'utilisateur
-  const user = db.users.find(u => u.id === req.user.id);
+  const user = db.users.find((u) => u.id === req.user.id);
   if (!user) {
-    return res.status(404).json({ message: 'User not found' });
+    return res.status(404).json({ message: "User not found" });
   }
-  
+
   // Générer un ID unique
   const id = Date.now().toString();
-  
+
   // Créer la nouvelle VM
   const newVM = {
     id,
     name,
-    status: 'stopped',
+    status: "stopped",
     vcpu_count: parseInt(vcpu_count),
     memory_size_mib: parseInt(memory_size_mib),
     disk_size_gb: parseInt(disk_size_gb),
@@ -233,15 +248,15 @@ app.post('/api/vms', authenticateToken, async (req, res) => {
     user: {
       id: user.id,
       name: user.name,
-      email: user.email
+      email: user.email,
     },
     systemImage: {
       id: systemImage.id,
-      name: systemImage.name
+      name: systemImage.name,
     },
     vmOffer: {
       id: "1",
-      name: vcpu_count > 2 ? "Premium" : "Standard"
+      name: vcpu_count > 2 ? "Premium" : "Standard",
     },
     metrics: {
       cpu_usage: 0,
@@ -250,13 +265,13 @@ app.post('/api/vms', authenticateToken, async (req, res) => {
       network_rx_bytes: 0,
       network_tx_bytes: 0,
       disk_read_bytes: 0,
-      disk_write_bytes: 0
-    }
+      disk_write_bytes: 0,
+    },
   };
-  
+
   // Ajouter la VM à la base de données
   db.vms.push(newVM);
-  
+
   // Créer des logs pour la VM
   const vmLog = {
     vm_id: id,
@@ -264,137 +279,137 @@ app.post('/api/vms', authenticateToken, async (req, res) => {
       {
         timestamp: new Date().toISOString(),
         level: "info",
-        message: "VM created successfully"
-      }
-    ]
+        message: "VM created successfully",
+      },
+    ],
   };
-  
-  db['vm-logs'].push(vmLog);
-  
+
+  db["vm-logs"].push(vmLog);
+
   // Sauvegarder les modifications
   saveDb(db);
-  
+
   res.status(201).json({
     ...newVM,
     id: parseInt(newVM.id),
     user: {
       ...newVM.user,
-      id: parseInt(newVM.user.id)
+      id: parseInt(newVM.user.id),
     },
     systemImage: {
       ...newVM.systemImage,
-      id: parseInt(newVM.systemImage.id)
-    }
+      id: parseInt(newVM.systemImage.id),
+    },
   });
 });
 
 // Mettre à jour une VM
-app.put('/api/vms/:id', authenticateToken, async (req, res) => {
+app.put("/api/vms/:id", authenticateToken, async (req, res) => {
   await delay(800);
   const db = getDb();
-  
+
   // Trouver la VM
-  const vmIndex = db.vms.findIndex(v => v.id === req.params.id);
-  
+  const vmIndex = db.vms.findIndex((v) => v.id === req.params.id);
+
   if (vmIndex === -1) {
-    return res.status(404).json({ message: 'VM not found' });
+    return res.status(404).json({ message: "VM not found" });
   }
-  
+
   const vm = db.vms[vmIndex];
-  
+
   // Vérifier si l'utilisateur a accès à cette VM
-  if (req.user.role !== 'admin' && vm.user.id !== req.user.id) {
-    return res.status(403).json({ message: 'Access denied' });
+  if (req.user.role !== "admin" && vm.user.id !== req.user.id) {
+    return res.status(403).json({ message: "Access denied" });
   }
-  
+
   // Mettre à jour les propriétés autorisées
   const { name } = req.body;
-  
+
   if (name) {
     vm.name = name;
   }
-  
+
   // Mettre à jour la VM
   db.vms[vmIndex] = vm;
-  
+
   // Sauvegarder les modifications
   saveDb(db);
-  
+
   res.json({
     ...vm,
     id: parseInt(vm.id),
     user: {
       ...vm.user,
-      id: parseInt(vm.user.id)
+      id: parseInt(vm.user.id),
     },
     systemImage: {
       ...vm.systemImage,
-      id: parseInt(vm.systemImage.id)
-    }
+      id: parseInt(vm.systemImage.id),
+    },
   });
 });
 
 // Supprimer une VM
-app.delete('/api/vms/:id', authenticateToken, async (req, res) => {
+app.delete("/api/vms/:id", authenticateToken, async (req, res) => {
   await delay(800);
   const db = getDb();
-  
+
   // Trouver la VM
-  const vmIndex = db.vms.findIndex(v => v.id === req.params.id);
-  
+  const vmIndex = db.vms.findIndex((v) => v.id === req.params.id);
+
   if (vmIndex === -1) {
-    return res.status(404).json({ message: 'VM not found' });
+    return res.status(404).json({ message: "VM not found" });
   }
-  
+
   const vm = db.vms[vmIndex];
-  
+
   // Vérifier si l'utilisateur a accès à cette VM
-  if (req.user.role !== 'admin' && vm.user.id !== req.user.id) {
-    return res.status(403).json({ message: 'Access denied' });
+  if (req.user.role !== "admin" && vm.user.id !== req.user.id) {
+    return res.status(403).json({ message: "Access denied" });
   }
-  
+
   // Supprimer la VM
   db.vms.splice(vmIndex, 1);
-  
+
   // Supprimer les logs associés
-  const logIndex = db['vm-logs'].findIndex(l => l.vm_id === req.params.id);
+  const logIndex = db["vm-logs"].findIndex((l) => l.vm_id === req.params.id);
   if (logIndex !== -1) {
-    db['vm-logs'].splice(logIndex, 1);
+    db["vm-logs"].splice(logIndex, 1);
   }
-  
+
   // Sauvegarder les modifications
   saveDb(db);
-  
-  res.json({ message: 'VM deleted successfully' });
+
+  res.json({ message: "VM deleted successfully" });
 });
 
 // Routes pour les actions sur les VMs
-app.post('/api/vms/:id/start', authenticateToken, async (req, res) => {
+app.post("/api/vms/:id/start", authenticateToken, async (req, res) => {
   await delay(1500);
   const db = getDb();
-  
+
   // Trouver la VM
-  const vmIndex = db.vms.findIndex(v => v.id === req.params.id);
-  
+  const vmIndex = db.vms.findIndex((v) => v.id === req.params.id);
+
   if (vmIndex === -1) {
-    return res.status(404).json({ message: 'VM not found' });
+    return res.status(404).json({ message: "VM not found" });
   }
-  
+
   const vm = db.vms[vmIndex];
-  
+
   // Vérifier si l'utilisateur a accès à cette VM
-  if (req.user.role !== 'admin' && vm.user.id !== req.user.id) {
-    return res.status(403).json({ message: 'Access denied' });
+  if (req.user.role !== "admin" && vm.user.id !== req.user.id) {
+    return res.status(403).json({ message: "Access denied" });
   }
-  
+
   // Vérifier l'état actuel
-  if (vm.status === 'running') {
-    return res.status(400).json({ message: 'VM is already running' });
+  if (vm.status === "running") {
+    return res.status(400).json({ message: "VM is already running" });
   }
-  
+
   // Mettre à jour l'état
-  vm.status = 'running';
-  
+  vm.status = "running";
+
   // Générer des métriques fictives
   vm.metrics = {
     cpu_usage: Math.floor(Math.random() * 50) + 10,
@@ -403,66 +418,66 @@ app.post('/api/vms/:id/start', authenticateToken, async (req, res) => {
     network_rx_bytes: Math.floor(Math.random() * 1000000),
     network_tx_bytes: Math.floor(Math.random() * 500000),
     disk_read_bytes: Math.floor(Math.random() * 2000000),
-    disk_write_bytes: Math.floor(Math.random() * 1000000)
+    disk_write_bytes: Math.floor(Math.random() * 1000000),
   };
-  
+
   // Mettre à jour la VM
   db.vms[vmIndex] = vm;
-  
+
   // Ajouter un log
-  const logIndex = db['vm-logs'].findIndex(l => l.vm_id === req.params.id);
+  const logIndex = db["vm-logs"].findIndex((l) => l.vm_id === req.params.id);
   if (logIndex !== -1) {
-    db['vm-logs'][logIndex].logs.push({
+    db["vm-logs"][logIndex].logs.push({
       timestamp: new Date().toISOString(),
       level: "info",
-      message: "VM started successfully"
+      message: "VM started successfully",
     });
   }
-  
+
   // Sauvegarder les modifications
   saveDb(db);
-  
+
   res.json({
-    message: 'VM started successfully',
+    message: "VM started successfully",
     ...vm,
     id: parseInt(vm.id),
     user: {
       ...vm.user,
-      id: parseInt(vm.user.id)
+      id: parseInt(vm.user.id),
     },
     systemImage: {
       ...vm.systemImage,
-      id: parseInt(vm.systemImage.id)
-    }
+      id: parseInt(vm.systemImage.id),
+    },
   });
 });
 
-app.post('/api/vms/:id/stop', authenticateToken, async (req, res) => {
+app.post("/api/vms/:id/stop", authenticateToken, async (req, res) => {
   await delay(1000);
   const db = getDb();
-  
+
   // Trouver la VM
-  const vmIndex = db.vms.findIndex(v => v.id === req.params.id);
-  
+  const vmIndex = db.vms.findIndex((v) => v.id === req.params.id);
+
   if (vmIndex === -1) {
-    return res.status(404).json({ message: 'VM not found' });
+    return res.status(404).json({ message: "VM not found" });
   }
-  
+
   const vm = db.vms[vmIndex];
-  
+
   // Vérifier si l'utilisateur a accès à cette VM
-  if (req.user.role !== 'admin' && vm.user.id !== req.user.id) {
-    return res.status(403).json({ message: 'Access denied' });
+  if (req.user.role !== "admin" && vm.user.id !== req.user.id) {
+    return res.status(403).json({ message: "Access denied" });
   }
-  
+
   // Vérifier l'état actuel
-  if (vm.status === 'stopped') {
-    return res.status(400).json({ message: 'VM is already stopped' });
+  if (vm.status === "stopped") {
+    return res.status(400).json({ message: "VM is already stopped" });
   }
-  
+
   // Mettre à jour l'état
-  vm.status = 'stopped';
-  
+  vm.status = "stopped";
+
   // Réinitialiser les métriques
   vm.metrics = {
     cpu_usage: 0,
@@ -471,210 +486,218 @@ app.post('/api/vms/:id/stop', authenticateToken, async (req, res) => {
     network_rx_bytes: 0,
     network_tx_bytes: 0,
     disk_read_bytes: 0,
-    disk_write_bytes: 0
+    disk_write_bytes: 0,
   };
-  
+
   // Mettre à jour la VM
   db.vms[vmIndex] = vm;
-  
+
   // Ajouter un log
-  const logIndex = db['vm-logs'].findIndex(l => l.vm_id === req.params.id);
+  const logIndex = db["vm-logs"].findIndex((l) => l.vm_id === req.params.id);
   if (logIndex !== -1) {
-    db['vm-logs'][logIndex].logs.push({
+    db["vm-logs"][logIndex].logs.push({
       timestamp: new Date().toISOString(),
       level: "info",
-      message: "VM stopped successfully"
+      message: "VM stopped successfully",
     });
   }
-  
+
   // Sauvegarder les modifications
   saveDb(db);
-  
+
   res.json({
-    message: 'VM stopped successfully',
+    message: "VM stopped successfully",
     ...vm,
     id: parseInt(vm.id),
     user: {
       ...vm.user,
-      id: parseInt(vm.user.id)
+      id: parseInt(vm.user.id),
     },
     systemImage: {
       ...vm.systemImage,
-      id: parseInt(vm.systemImage.id)
-    }
+      id: parseInt(vm.systemImage.id),
+    },
   });
 });
 
-app.post('/api/vms/:id/pause', authenticateToken, async (req, res) => {
+app.post("/api/vms/:id/pause", authenticateToken, async (req, res) => {
   await delay(800);
   const db = getDb();
-  
+
   // Trouver la VM
-  const vmIndex = db.vms.findIndex(v => v.id === req.params.id);
-  
+  const vmIndex = db.vms.findIndex((v) => v.id === req.params.id);
+
   if (vmIndex === -1) {
-    return res.status(404).json({ message: 'VM not found' });
+    return res.status(404).json({ message: "VM not found" });
   }
-  
+
   const vm = db.vms[vmIndex];
-  
+
   // Vérifier si l'utilisateur a accès à cette VM
-  if (req.user.role !== 'admin' && vm.user.id !== req.user.id) {
-    return res.status(403).json({ message: 'Access denied' });
+  if (req.user.role !== "admin" && vm.user.id !== req.user.id) {
+    return res.status(403).json({ message: "Access denied" });
   }
-  
+
   // Vérifier l'état actuel
-  if (vm.status !== 'running') {
-    return res.status(400).json({ message: 'VM must be running to pause' });
+  if (vm.status !== "running") {
+    return res.status(400).json({ message: "VM must be running to pause" });
   }
-  
+
   // Mettre à jour l'état
-  vm.status = 'paused';
-  
+  vm.status = "paused";
+
   // Mettre à jour la VM
   db.vms[vmIndex] = vm;
-  
+
   // Ajouter un log
-  const logIndex = db['vm-logs'].findIndex(l => l.vm_id === req.params.id);
+  const logIndex = db["vm-logs"].findIndex((l) => l.vm_id === req.params.id);
   if (logIndex !== -1) {
-    db['vm-logs'][logIndex].logs.push({
+    db["vm-logs"][logIndex].logs.push({
       timestamp: new Date().toISOString(),
       level: "info",
-      message: "VM paused successfully"
+      message: "VM paused successfully",
     });
   }
-  
+
   // Sauvegarder les modifications
   saveDb(db);
-  
+
   res.json({
-    message: 'VM paused successfully',
+    message: "VM paused successfully",
     ...vm,
     id: parseInt(vm.id),
     user: {
       ...vm.user,
-      id: parseInt(vm.user.id)
+      id: parseInt(vm.user.id),
     },
     systemImage: {
       ...vm.systemImage,
-      id: parseInt(vm.systemImage.id)
-    }
+      id: parseInt(vm.systemImage.id),
+    },
   });
 });
 
 // Récupérer les logs d'une VM
-app.get('/api/vms/:id/logs', authenticateToken, async (req, res) => {
+app.get("/api/vms/:id/logs", authenticateToken, async (req, res) => {
   await delay(500);
   const db = getDb();
-  
+
   // Trouver la VM
-  const vm = db.vms.find(v => v.id === req.params.id);
-  
+  const vm = db.vms.find((v) => v.id === req.params.id);
+
   if (!vm) {
-    return res.status(404).json({ message: 'VM not found' });
-  }
-  
-  // Vérifier si l'utilisateur a accès à cette VM
-  if (req.user.role !== 'admin' && vm.user.id !== req.user.id) {
-    return res.status(403).json({ message: 'Access denied' });
+    return res.status(404).json({ message: "VM not found" });
   }
 
-  const logs = (db['vm-logs'] || []).find(l => l.vm_id === req.params.id);
-  
+  // Vérifier si l'utilisateur a accès à cette VM
+  if (req.user.role !== "admin" && vm.user.id !== req.user.id) {
+    return res.status(403).json({ message: "Access denied" });
+  }
+
+  const logs = (db["vm-logs"] || []).find((l) => l.vm_id === req.params.id);
+
   if (!logs) {
     return res.json({ logs: [] });
   }
-  
+
   res.json(logs.logs);
 });
 
 // Route pour les utilisateurs
-app.get('/api/users', authenticateToken, async (req, res) => {
+app.get("/api/users", authenticateToken, async (req, res) => {
   await delay(500);
   const db = getDb();
-  
+
   // Si l'utilisateur n'est pas admin, ne renvoyer que ses propres informations
-  if (req.user.role !== 'admin') {
-    const user = db.users.find(u => u.id === req.user.id);
-    return res.json([{
-      id: parseInt(user.id),
-      name: user.name,
-      email: user.email,
-      role: user.role
-    }]);
+  if (req.user.role !== "admin") {
+    const user = db.users.find((u) => u.id === req.user.id);
+    return res.json([
+      {
+        id: parseInt(user.id),
+        name: user.name,
+        email: user.email,
+        role: user.role,
+      },
+    ]);
   }
-  
-  res.json(db.users.map(u => ({
-    id: parseInt(u.id),
-    name: u.name,
-    email: u.email,
-    role: u.role
-  })));
+
+  res.json(
+    db.users.map((u) => ({
+      id: parseInt(u.id),
+      name: u.name,
+      email: u.email,
+      role: u.role,
+    }))
+  );
 });
 
 // Récupérer les images système
-app.get('/api/system-images', authenticateToken, async (req, res) => {
+app.get("/api/system-images", authenticateToken, async (req, res) => {
   await delay(500);
   const db = getDb();
   const images = db.systemImages || [];
-  
-  res.json(images.map(image => ({
-    ...image,
-    id: parseInt(image.id)
-  })));
+
+  res.json(
+    images.map((image) => ({
+      ...image,
+      id: parseInt(image.id),
+    }))
+  );
 });
 
 // Route pour récupérer une image système par ID
-app.get('/api/system-images/:id', authenticateToken, async (req, res) => {
+app.get("/api/system-images/:id", authenticateToken, async (req, res) => {
   await delay(500);
   const db = getDb();
-  const image = db.systemImages.find(img => img.id === req.params.id);
-  
+  const image = db.systemImages.find((img) => img.id === req.params.id);
+
   if (!image) {
-    return res.status(404).json({ message: 'Image système non trouvée' });
+    return res.status(404).json({ message: "Image système non trouvée" });
   }
-  
+
   res.json({
     ...image,
-    id: parseInt(image.id)
+    id: parseInt(image.id),
   });
 });
 
 // Récupérer les modèles de VMs
-app.get('/api/vm_models', authenticateToken, async (req, res) => {
+app.get("/api/vm_models", authenticateToken, async (req, res) => {
   await delay(500);
   const db = getDb();
   const models = db.vmModels || [];
-  
-  res.json(models.map(model => ({
-    ...model,
-    id: parseInt(model.id),
-    cpu: parseInt(model.cpu),
-    ram: parseInt(model.ram),
-    storage: parseInt(model.storage),
-    price_per_hour: parseFloat(model.price_per_hour)
-  })));
+
+  res.json(
+    models.map((model) => ({
+      ...model,
+      id: parseInt(model.id),
+      cpu: parseInt(model.cpu),
+      ram: parseInt(model.ram),
+      storage: parseInt(model.storage),
+      price_per_hour: parseFloat(model.price_per_hour),
+    }))
+  );
 });
 
 // Démarrer le serveur
 app.listen(port, () => {
-  console.log('\x1b[32m%s\x1b[0m', '🚀 Mock API Server is running!');
-  console.log('\x1b[36m%s\x1b[0m', `➜ Local: http://localhost:${port}`);
-  console.log('\nAvailable routes:');
-  console.log('\x1b[33m%s\x1b[0m', '  POST   /api/auth/login');
-  console.log('\x1b[33m%s\x1b[0m', '  POST   /api/auth/logout');
-  console.log('\x1b[33m%s\x1b[0m', '  GET    /api/auth/user');
-  console.log('\x1b[33m%s\x1b[0m', '  GET    /api/vms');
-  console.log('\x1b[33m%s\x1b[0m', '  GET    /api/vms/:id');
-  console.log('\x1b[33m%s\x1b[0m', '  POST   /api/vms');
-  console.log('\x1b[33m%s\x1b[0m', '  PUT    /api/vms/:id');
-  console.log('\x1b[33m%s\x1b[0m', '  DELETE /api/vms/:id');
-  console.log('\x1b[33m%s\x1b[0m', '  POST   /api/vms/:id/start');
-  console.log('\x1b[33m%s\x1b[0m', '  POST   /api/vms/:id/stop');
-  console.log('\x1b[33m%s\x1b[0m', '  POST   /api/vms/:id/pause');
-  console.log('\x1b[33m%s\x1b[0m', '  GET    /api/vms/:id/logs');
-  console.log('\x1b[33m%s\x1b[0m', '  GET    /api/users');
-  console.log('\x1b[33m%s\x1b[0m', '  GET    /api/system-images');
-  console.log('\x1b[33m%s\x1b[0m', '  GET    /api/system-images/:id');
-  console.log('\x1b[33m%s\x1b[0m', '  GET    /api/vm_models');
+  console.log("\x1b[32m%s\x1b[0m", "🚀 Mock API Server is running!");
+  console.log("\x1b[36m%s\x1b[0m", `➜ Local: http://localhost:${port}`);
+  console.log("\nAvailable routes:");
+  console.log("\x1b[33m%s\x1b[0m", "  POST   /api/auth/login");
+  console.log("\x1b[33m%s\x1b[0m", "  POST   /api/auth/logout");
+  console.log("\x1b[33m%s\x1b[0m", "  GET    /api/auth/user");
+  console.log("\x1b[33m%s\x1b[0m", "  GET    /api/vms");
+  console.log("\x1b[33m%s\x1b[0m", "  GET    /api/vms/:id");
+  console.log("\x1b[33m%s\x1b[0m", "  POST   /api/vms");
+  console.log("\x1b[33m%s\x1b[0m", "  PUT    /api/vms/:id");
+  console.log("\x1b[33m%s\x1b[0m", "  DELETE /api/vms/:id");
+  console.log("\x1b[33m%s\x1b[0m", "  POST   /api/vms/:id/start");
+  console.log("\x1b[33m%s\x1b[0m", "  POST   /api/vms/:id/stop");
+  console.log("\x1b[33m%s\x1b[0m", "  POST   /api/vms/:id/pause");
+  console.log("\x1b[33m%s\x1b[0m", "  GET    /api/vms/:id/logs");
+  console.log("\x1b[33m%s\x1b[0m", "  GET    /api/users");
+  console.log("\x1b[33m%s\x1b[0m", "  GET    /api/system-images");
+  console.log("\x1b[33m%s\x1b[0m", "  GET    /api/system-images/:id");
+  console.log("\x1b[33m%s\x1b[0m", "  GET    /api/vm_models");
 });

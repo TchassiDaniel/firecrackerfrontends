@@ -4,14 +4,13 @@ const nextConfig = {
   async rewrites() {
     return [
       {
-        source: '/api/auth/:path*',
-        destination: 'http://192.168.1.143:8079/auth/:path*'
+        source: "/api/auth/:path*",
+        destination: "http://localhost:8079/auth/:path*",
       },
       {
-        source: '/api/vm-manager/:path*',
-        destination: 'http://192.168.1.143:8003/vm-manager/:path*'
+        source: "/api/vm-manager/:path*",
+        destination: "http://localhost:8003/vm-manager/:path*",
       },
-      
     ];
   },
   webpack: (config) => {
@@ -22,7 +21,7 @@ const nextConfig = {
       tls: false,
     };
     return config;
-  }
-}
+  },
+};
 
-module.exports = nextConfig
+module.exports = nextConfig;
