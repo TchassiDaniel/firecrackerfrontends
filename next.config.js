@@ -11,7 +11,6 @@ const nextConfig = {
         source: '/api/vm-manager/:path*',
         destination: 'http://85.214.142.178:9010/vm-manager/:path*'
       },
-      
     ];
   },
   webpack: (config) => {
@@ -22,7 +21,7 @@ const nextConfig = {
       tls: false,
     };
     return config;
-  }
-}
+  },
+};
 
-module.exports = nextConfig
+module.exports = nextConfig;

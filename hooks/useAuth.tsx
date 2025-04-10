@@ -1,11 +1,12 @@
-'use client';
+"use client";
 
-import { createContext, useContext, useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { toast } from '@/components/ui/use-toast';
-import { getServiceClient } from '@/lib/api/client';
+import { createContext, useContext, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { toast } from "@/components/ui/use-toast";
+import { getServiceClient } from "@/lib/api/client";
 
 interface User {
+  user: User;
   id: string;
   name: string;
   email: string;
@@ -33,11 +34,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false); // Nouvel état
   const router = useRouter();
 
-  const authClient = getServiceClient('AUTH_SERVICE');
+  const authClient = getServiceClient("AUTH_SERVICE");
 
   // Load user from localStorage only after component mounts (client-side only)
   useEffect(() => {
-    const storedUser = localStorage.getItem('user');
+    const storedUser = localStorage.getItem("user");
     if (storedUser) {
       const userData = JSON.parse(storedUser);
       setUser(userData);
@@ -49,20 +50,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const updateUser = (userData: User | null) => {
     setUser(userData);
     setIsAuthenticated(!!userData); // Mettre à jour l'état d'authentification
-    
+
     if (userData) {
-      localStorage.setItem('user', JSON.stringify(userData));
+      localStorage.setItem("user", JSON.stringify(userData));
     } else {
-      localStorage.removeItem('user');
+      localStorage.removeItem("user");
     }
   };
 
   const login = async (email: string, password: string) => {
     try {
-      const response = await authClient.post('/auth/login', { email, password });
-      
+      const response = await authClient.post("/auth/login", {
+        email,
+        password,
+      });
+
       updateUser(response.data);
-      router.push('/dashboard');
+      router.push("/dashboard");
       toast({
         title: "Success",
         description: "You have been logged in successfully.",
@@ -79,13 +83,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const register = async (name: string, email: string, password: string) => {
     try {
-      await authClient.post('/auth/signup', { name, email, password });
-      
+      await authClient.post("/auth/signup", { name, email, password });
+
       toast({
         title: "Success",
         description: "Please check your email to verify your account.",
       });
-      router.push('/auth/login');
+      router.push("/auth/login");
     } catch (error: any) {
       toast({
         title: "Error",
@@ -99,15 +103,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const logout = async () => {
     try {
       // Supprimer l'utilisateur du localStorage
-      localStorage.removeItem('user');
-      
+      localStorage.removeItem("user");
+
       // Mettre à jour l'état de l'utilisateur et l'authentification
       setUser(null);
       setIsAuthenticated(false);
-      
+
       // Rediriger vers la page de connexion
-      router.push('/');
-      
+      router.push("/");
+
       // Afficher un toast de confirmation
       toast({
         title: "Déconnexion",
@@ -125,16 +129,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const forgotPassword = async (email: string) => {
     try {
-      await authClient.post('/auth/forgot-password', { email });
-      
+      await authClient.post("/auth/forgot-password", { email });
+
       toast({
         title: "Success",
-        description: "Password reset instructions have been sent to your email.",
+        description:
+          "Password reset instructions have been sent to your email.",
       });
     } catch (error: any) {
       toast({
         title: "Error",
-        description: error.response?.data?.message || "Failed to send reset email",
+        description:
+          error.response?.data?.message || "Failed to send reset email",
         variant: "destructive",
       });
       throw error;
@@ -143,17 +149,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const resetPassword = async (token: string, password: string) => {
     try {
-      await authClient.post('/auth/reset-password', { token, password });
-      
+      await authClient.post("/auth/reset-password", { token, password });
+
       toast({
         title: "Success",
         description: "Your password has been reset successfully.",
       });
-      router.push('/auth/login');
+      router.push("/auth/login");
     } catch (error: any) {
       toast({
         title: "Error",
-        description: error.response?.data?.message || "Failed to reset password",
+        description:
+          error.response?.data?.message || "Failed to reset password",
         variant: "destructive",
       });
       throw error;
@@ -162,13 +169,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const verifyEmail = async (id: string, hash: string) => {
     try {
-      await authClient.post('/auth/verify-email', { id, hash });
-      
+      await authClient.post("/auth/verify-email", { id, hash });
+
       toast({
         title: "Success",
         description: "Your email has been verified successfully.",
       });
-      router.push('/auth/login');
+      router.push("/auth/login");
     } catch (error: any) {
       toast({
         title: "Error",
@@ -201,7 +208,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 export function useAuth() {
   const context = useContext(AuthContext);
   if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider');
+    throw new Error("useAuth must be used within an AuthProvider");
   }
   return context;
 }

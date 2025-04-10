@@ -7,7 +7,7 @@ interface ServiceConfig {
   timeout: number;
 }
 
-const isDevelopment = process.env.NODE_ENV === 'development';
+const isDevelopment = process.env.NODE_ENV === "development";
 
 const serviceUrls = {
   // For AUTH_SERVICE, we'll use our local proxy in development to avoid CORS issues
@@ -21,19 +21,19 @@ const serviceUrls = {
 
 const SERVICE_CONFIG: Record<ServiceType, ServiceConfig> = {
   AUTH_SERVICE: {
-    baseURL: serviceUrls.AUTH_SERVICE || '',
+    baseURL: serviceUrls.AUTH_SERVICE || "",
     timeout: 5000,
   },
   USER_SERVICE: {
-    baseURL: serviceUrls.USER_SERVICE || '',
+    baseURL: serviceUrls.USER_SERVICE || "",
     timeout: 5000,
   },
   VM_SERVICE: {
-    baseURL: serviceUrls.VM_SERVICE || '',
+    baseURL: serviceUrls.VM_SERVICE || "",
     timeout: 10000,
   },
   NOTIFICATION_SERVICE: {
-    baseURL: serviceUrls.NOTIFICATION_SERVICE || '',
+    baseURL: serviceUrls.NOTIFICATION_SERVICE || "",
     timeout: 5000,
   },
   SYSTEM_IMAGES_SERVICE: {
@@ -52,12 +52,15 @@ const createClient = (serviceType: ServiceType) => {
     ...config,
     withCredentials: false,
     headers: {
-      'Content-Type': 'application/json',
+      "Content-Type": "application/json",
     },
   });
 };
 
-const clientInstances: Map<ServiceType, ReturnType<typeof createClient>> = new Map();
+const clientInstances: Map<
+  ServiceType,
+  ReturnType<typeof createClient>
+> = new Map();
 
 export const getServiceClient = (serviceType: ServiceType) => {
   if (!clientInstances.has(serviceType)) {
