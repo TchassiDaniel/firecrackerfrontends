@@ -81,7 +81,7 @@ export default function UsersPage() {
 
   const handleDeleteUser = async (userId: string) => {
     try {
-      await deleteUser(userId);
+      await deleteUser(Number(userId));
       toast({
         title: 'Succès',
         description: 'Utilisateur supprimé avec succès',
