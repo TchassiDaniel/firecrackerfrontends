@@ -10,12 +10,10 @@ import {
   Check,
   Server,
   Globe,
-  Lock,
   Cpu,
   MemoryStick,
   HardDrive,
   Cloud,
-  Power,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -169,104 +167,69 @@ export default function CreateVirtualMachinePage() {
     }
 
     setIsSubmitting(true);
+
     try {
-      console.log("Appel de createVirtualMachine avec:", values);
+      console.log("Envoi de la demande de création de VM...");
 
-      // Créer une promesse avec un timeout de 2 minutes
-      const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(
-          () => reject(new Error("Délai d'attente dépassé (2 minutes)")),
-          120000
-        );
-      });
-
-      // Utiliser Promise.race pour comparer quelle promesse se termine en premier
-      const result = (await Promise.race([
-        createVirtualMachine(values),
-        timeoutPromise,
-      ])) as any; // Le type any est utilisé ici pour simplifier, à adapter selon vos types
-
-      console.log("Résultat de createVirtualMachine:", result);
-
+      // Afficher immédiatement un message à l'utilisateur
       toast({
-        title: "Nouvelle machine virtuelle créée",
+        title: "Demande envoyée",
         description: (
-          <motion.div
-            initial="initial"
-            animate="animate"
-            exit="exit"
-            variants={fadeInUp}
-            className="space-y-4 mt-4"
-          >
-            <div className="flex items-center gap-2 mb-4">
-              <Power className="w-5 h-5 text-green-500" />
-              <span className="font-medium">
-                Configuration terminée avec succès
-              </span>
+          <div className="space-y-2">
+            <p>
+              La création de votre machine virtuelle est en cours. Cela peut
+              prendre plusieurs minutes.
+            </p>
+            <div className="flex items-center gap-2 mt-2">
+              <div className="animate-spin text-lg">◌</div>
+              <span>Traitement en cours...</span>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <StatsCard
-                icon={Cpu}
-                title="CPU"
-                value={`${result.cpu} cœurs`}
-                color="border-blue-500"
-              />
-              <StatsCard
-                icon={MemoryStick}
-                title="RAM"
-                value={`${result.ram} MB`}
-                color="border-purple-500"
-              />
-              <StatsCard
-                icon={HardDrive}
-                title="Stockage"
-                value={`${result.storage} GB`}
-                color="border-orange-500"
-              />
-              <StatsCard
-                icon={Globe}
-                title="IP"
-                value={result.ip_address}
-                color="border-green-500"
-              />
-            </div>
-
-            <div className="bg-gray-50 rounded-xl p-4 mt-4">
-              <div className="flex items-center justify-between mb-2">
-                <h3 className="font-semibold flex items-center gap-2">
-                  <Lock className="w-4 h-4" />
-                  Clé SSH
-                </h3>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => navigator.clipboard.writeText(result.ssh_key)}
-                  className="hover:scale-105 transition-transform"
-                >
-                  Copier
-                </Button>
-              </div>
-              <code className="block bg-black text-green-400 p-3 rounded-lg text-sm overflow-x-auto">
-                {result.ssh_key}
-              </code>
-            </div>
-          </motion.div>
+          </div>
         ),
-        variant: "success",
+        variant: "info",
+        duration: 5000, // 5 secondes
       });
 
+      // Envoyer la requête sans attendre la réponse
+      createVirtualMachine(values)
+        .then((result) => {
+          console.log("Résultat de la création (en arrière-plan):", result);
+
+          // Notification de succès (même si l'utilisateur a déjà été redirigé)
+          toast({
+            title: "Création réussie",
+            description: `La machine virtuelle "${values.name}" a été créée avec succès.`,
+            variant: "success",
+          });
+        })
+        .catch((error) => {
+          console.error("Erreur lors de la création (en arrière-plan):", error);
+
+          // Notification d'erreur (même si l'utilisateur a déjà été redirigé)
+          toast({
+            title: "Problème de création",
+            description:
+              "Un problème est survenu lors de la création. Vérifiez l'état de votre machine dans quelques minutes.",
+            variant: "destructive",
+          });
+        });
+
+      // Attendre un court délai pour que l'utilisateur voie le toast
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+
+      // Rediriger l'utilisateur sans attendre la fin de la création
       router.push("/virtual-machines");
     } catch (error) {
-      console.error("Erreur lors de la création:", error);
+      // Cette partie ne gère que les erreurs immédiates (problèmes de réseau, etc.)
+      console.error("Erreur immédiate lors de l'envoi:", error);
+
       toast({
-        title: "Erreur de création",
+        title: "Erreur d'envoi",
         description:
-          error instanceof Error
-            ? error.message
-            : "Impossible de créer la machine virtuelle",
+          "Impossible d'envoyer la demande de création. Veuillez réessayer.",
         variant: "destructive",
       });
-    } finally {
+
       setIsSubmitting(false);
     }
   };
@@ -512,7 +475,7 @@ export default function CreateVirtualMachinePage() {
                             Retour
                           </Button>
                           <Button
-                            type="button" // Changé de "submit" à "button"
+                            type="button"
                             className="w-2/3 h-12 text-lg font-semibold bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 transition-all duration-300"
                             disabled={isSubmitting}
                             onClick={() => {
