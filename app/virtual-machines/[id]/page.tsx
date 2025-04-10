@@ -58,13 +58,13 @@ import {
 } from "@/components/ui/table";
 
 import { useVirtualMachines } from "@/hooks/useVirtualMachines";
-import type { 
-  VirtualMachine, 
-  VMStatus, 
-  VMMetrics, 
-  SystemImage, 
+import type {
+  VirtualMachine,
+  VMStatus,
+  VMMetrics,
+  SystemImage,
   VMmodels,
-  VMStatusHistory 
+  VMStatusHistory,
 } from "@/types/virtualMachine";
 
 export default function VirtualMachinePage() {
@@ -72,19 +72,18 @@ export default function VirtualMachinePage() {
   const router = useRouter();
   const { toast } = useToast();
   const vmId = parseInt(Array.isArray(id) ? id[0] : id || "0");
-  
-  const { 
+
+  const {
     selectedVM: vm,
     isLoading,
     error,
-    fetchVirtualMachineById, 
-    fetchVMMetrics, 
+    fetchVirtualMachineById,
+    fetchVMMetrics,
     fetchVMStatusHistory,
     updateVirtualMachineStatus,
     deleteVirtualMachine,
-    
   } = useVirtualMachines();
-  
+
   const [metrics, setMetrics] = useState<VMMetrics | null>(null);
   const [statusHistory, setStatusHistory] = useState<VMStatusHistory[]>([]);
   const [totalCost, setTotalCost] = useState(0);
@@ -93,14 +92,14 @@ export default function VirtualMachinePage() {
   const fadeIn = {
     initial: { opacity: 0, y: 20 },
     animate: { opacity: 1, y: 0 },
-    exit: { opacity: 0, y: -20 }
+    exit: { opacity: 0, y: -20 },
   };
 
   const cardHover = {
     hover: {
       scale: 1.02,
-      transition: { duration: 0.3 }
-    }
+      transition: { duration: 0.3 },
+    },
   };
 
   const statusVariants: Record<VMStatus, string> = {
@@ -114,7 +113,7 @@ export default function VirtualMachinePage() {
       await fetchVirtualMachineById(vmId);
       const [metricsData, historyData] = await Promise.all([
         fetchVMMetrics(vmId),
-        fetchVMStatusHistory(vmId)
+        fetchVMStatusHistory(vmId),
       ]);
 
       setMetrics(metricsData);
@@ -123,14 +122,17 @@ export default function VirtualMachinePage() {
       if (vm) {
         const createdAt = new Date(vm.created_at);
         const now = new Date();
-        const hours = Math.ceil((now.getTime() - createdAt.getTime()) / 3600000);
+        const hours = Math.ceil(
+          (now.getTime() - createdAt.getTime()) / 3600000
+        );
         setTotalCost(hours * vm.vmModels.cpu);
       }
     } catch (error) {
       toast({
         variant: "destructive",
         title: "Erreur lors du chargement",
-        description: "Impossible de charger les données de la machine virtuelle"
+        description:
+          "Impossible de charger les données de la machine virtuelle",
       });
       router.push("/virtual-machines");
     }
@@ -147,24 +149,24 @@ export default function VirtualMachinePage() {
       toast({
         variant: "destructive",
         title: "Erreur",
-        description: error
+        description: error,
       });
     }
   }, [error, toast]);
 
-  const handleAction = async (action: 'start' | 'stop' | 'pause') => {
+  const handleAction = async (action: "start" | "stop" | "pause") => {
     try {
       await updateVirtualMachineStatus(vmId, action);
       toast({
         title: "Succès",
-        description: `Action ${action} effectuée avec succès`
+        description: `Action ${action} effectuée avec succès`,
       });
       fetchData();
     } catch (error) {
       toast({
         variant: "destructive",
         title: "Erreur",
-        description: `Impossible d'effectuer l'action ${action}`
+        description: `Impossible d'effectuer l'action ${action}`,
       });
     }
   };
@@ -174,14 +176,14 @@ export default function VirtualMachinePage() {
       await deleteVirtualMachine(vmId);
       toast({
         title: "Suppression réussie",
-        description: "Machine virtuelle supprimée avec succès"
+        description: "Machine virtuelle supprimée avec succès",
       });
       router.push("/virtual-machines");
     } catch (error) {
       toast({
         variant: "destructive",
         title: "Erreur",
-        description: "Impossible de supprimer la machine virtuelle"
+        description: "Impossible de supprimer la machine virtuelle",
       });
     }
   };
@@ -192,7 +194,7 @@ export default function VirtualMachinePage() {
     navigator.clipboard.writeText(command);
     toast({
       title: "Commande copiée",
-      description: "Commande SSH copiée dans le presse-papiers"
+      description: "Commande SSH copiée dans le presse-papiers",
     });
   };
 
@@ -214,7 +216,7 @@ export default function VirtualMachinePage() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
       <div className="max-w-7xl mx-auto p-6 space-y-8">
-        <motion.div 
+        <motion.div
           initial="initial"
           animate="animate"
           exit="exit"
@@ -238,13 +240,23 @@ export default function VirtualMachinePage() {
                   {vm.name}
                 </h1>
                 <div className="flex items-center gap-3 mt-2">
-                  <span className={`inline-flex items-center px-4 py-1 rounded-full text-white text-sm ${statusVariants[vm.status]}`}>
-                    {vm.status === "running" ? "En cours d'exécution" : 
-                     vm.status === "stopped" ? "Arrêtée" : "Erreur"}
+                  <span
+                    className={`inline-flex items-center px-4 py-1 rounded-full text-white text-sm ${
+                      statusVariants[vm.status]
+                    }`}
+                  >
+                    {vm.status === "running"
+                      ? "En cours d'exécution"
+                      : vm.status === "stopped"
+                      ? "Arrêtée"
+                      : "Erreur"}
                   </span>
                   <span className="text-slate-400">•</span>
                   <span className="text-slate-600 dark:text-slate-300">
-                    Créée le {format(new Date(vm.created_at), "dd MMMM yyyy", { locale: fr })}
+                    Créée le{" "}
+                    {format(new Date(vm.created_at), "dd MMMM yyyy", {
+                      locale: fr,
+                    })}
                   </span>
                 </div>
               </div>
@@ -268,7 +280,9 @@ export default function VirtualMachinePage() {
                   <motion.div whileHover={{ scale: 1.05 }}>
                     <Button
                       variant="outline"
-                      onClick={() => router.push(`/virtual-machines/${vm.id}/terminal`)}
+                      onClick={() =>
+                        router.push(`/virtual-machines/${vm.id}/terminal`)
+                      }
                       className="bg-white dark:bg-slate-800 shadow-sm hover:shadow-md transition-all"
                     >
                       <Terminal className="mr-2 h-4 w-4" />
@@ -309,7 +323,10 @@ export default function VirtualMachinePage() {
                 </Button>
               </motion.div>
               <motion.div whileHover={{ scale: 1.05 }}>
-                <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+                <AlertDialog
+                  open={showDeleteDialog}
+                  onOpenChange={setShowDeleteDialog}
+                >
                   <AlertDialogTrigger asChild>
                     <Button
                       variant="destructive"
@@ -321,10 +338,12 @@ export default function VirtualMachinePage() {
                   </AlertDialogTrigger>
                   <AlertDialogContent className="bg-white dark:bg-slate-800">
                     <AlertDialogHeader>
-                      <AlertDialogTitle>Confirmer la suppression</AlertDialogTitle>
+                      <AlertDialogTitle>
+                        Confirmer la suppression
+                      </AlertDialogTitle>
                       <AlertDialogDescription>
-                        Cette action est irréversible. La machine virtuelle et toutes ses
-                        données seront définitivement supprimées.
+                        Cette action est irréversible. La machine virtuelle et
+                        toutes ses données seront définitivement supprimées.
                       </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
@@ -347,10 +366,7 @@ export default function VirtualMachinePage() {
             {/* Left Column - Metrics and History */}
             <div className="lg:col-span-2 space-y-6">
               {/* System Metrics Card */}
-              <motion.div
-                variants={cardHover}
-                whileHover="hover"
-              >
+              <motion.div variants={cardHover} whileHover="hover">
                 <Card className="overflow-hidden bg-white dark:bg-slate-800 shadow-lg">
                   <CardHeader className="border-b border-slate-200 dark:border-slate-700">
                     <CardTitle className="flex items-center gap-2">
@@ -366,8 +382,8 @@ export default function VirtualMachinePage() {
                           <Cpu className="h-5 w-5 text-purple-500" />
                           <h3 className="font-medium">CPU</h3>
                         </div>
-                        <Progress 
-                          value={metrics.cpu_usage} 
+                        <Progress
+                          value={metrics.cpu_usage}
                           className="h-2 mb-3"
                         />
                         <p className="text-sm text-slate-600 dark:text-slate-300">
@@ -381,8 +397,10 @@ export default function VirtualMachinePage() {
                           <MemoryStick className="h-5 w-5 text-blue-500" />
                           <h3 className="font-medium">Mémoire</h3>
                         </div>
-                        <Progress 
-                          value={(metrics.memory_usage / vm.memory_size_mib) * 100} 
+                        <Progress
+                          value={
+                            (metrics.memory_usage / vm.memory_size_mib) * 100
+                          }
                           className="h-2 mb-3"
                         />
                         <p className="text-sm text-slate-600 dark:text-slate-300">
@@ -396,8 +414,11 @@ export default function VirtualMachinePage() {
                           <HardDrive className="h-5 w-5 text-indigo-500" />
                           <h3 className="font-medium">Disque</h3>
                         </div>
-                        <Progress 
-                          value={(metrics.disk_usage / (vm.disk_size_gb * 1024)) * 100} 
+                        <Progress
+                          value={
+                            (metrics.disk_usage / (vm.disk_size_gb * 1024)) *
+                            100
+                          }
                           className="h-2 mb-3"
                         />
                         <p className="text-sm text-slate-600 dark:text-slate-300">
@@ -434,10 +455,7 @@ export default function VirtualMachinePage() {
               </motion.div>
 
               {/* Status History Card */}
-              <motion.div
-                variants={cardHover}
-                whileHover="hover"
-              >
+              <motion.div variants={cardHover} whileHover="hover">
                 <Card className="bg-white dark:bg-slate-800 shadow-lg">
                   <CardHeader className="border-b border-slate-200 dark:border-slate-700">
                     <CardTitle className="flex items-center gap-2">
@@ -458,15 +476,26 @@ export default function VirtualMachinePage() {
                           {statusHistory.map((history) => (
                             <TableRow key={history.id}>
                               <TableCell>
-                                <span className={`inline-flex items-center px-3 py-1 rounded-full text-white text-sm ${statusVariants[history.status]}`}>
-                                  {history.status === "running" ? "En cours d'exécution" : 
-                                   history.status === "stopped" ? "Arrêtée" : "Erreur"}
+                                <span
+                                  className={`inline-flex items-center px-3 py-1 rounded-full text-white text-sm ${
+                                    statusVariants[history.status]
+                                  }`}
+                                >
+                                  {history.status === "running"
+                                    ? "En cours d'exécution"
+                                    : history.status === "stopped"
+                                    ? "Arrêtée"
+                                    : "Erreur"}
                                 </span>
                               </TableCell>
                               <TableCell>
-                                {format(new Date(history.created_at), "dd MMM yyyy HH:mm", {
-                                  locale: fr,
-                                })}
+                                {format(
+                                  new Date(history.created_at),
+                                  "dd MMM yyyy HH:mm",
+                                  {
+                                    locale: fr,
+                                  }
+                                )}
                               </TableCell>
                             </TableRow>
                           ))}
@@ -481,10 +510,7 @@ export default function VirtualMachinePage() {
             {/* Right Column - Information Cards */}
             <div className="space-y-6">
               {/* VM Information Card */}
-              <motion.div
-                variants={cardHover}
-                whileHover="hover"
-              >
+              <motion.div variants={cardHover} whileHover="hover">
                 <Card className="bg-white dark:bg-slate-800 shadow-lg">
                   <CardHeader className="border-b border-slate-200 dark:border-slate-700">
                     <CardTitle className="flex items-center gap-2">
@@ -503,7 +529,9 @@ export default function VirtualMachinePage() {
                         <dl className="space-y-3">
                           <div className="flex justify-between items-center">
                             <dt className="text-slate-500">Offre</dt>
-                            <dd className="font-medium">{vm.vmModels.distribution_name}</dd>
+                            <dd className="font-medium">
+                              {vm.vmModels.distribution_name}
+                            </dd>
                           </div>
                           <div className="flex justify-between items-center">
                             <dt className="text-slate-500">Image système</dt>
@@ -517,11 +545,15 @@ export default function VirtualMachinePage() {
                           </div>
                           <div className="flex justify-between items-center">
                             <dt className="text-slate-500">Mémoire</dt>
-                            <dd className="font-medium">{vm.memory_size_mib} MiB</dd>
+                            <dd className="font-medium">
+                              {vm.memory_size_mib} MiB
+                            </dd>
                           </div>
                           <div className="flex justify-between items-center">
                             <dt className="text-slate-500">Stockage</dt>
-                            <dd className="font-medium">{vm.disk_size_gb} GB</dd>
+                            <dd className="font-medium">
+                              {vm.disk_size_gb} GB
+                            </dd>
                           </div>
                         </dl>
                       </div>
@@ -535,11 +567,15 @@ export default function VirtualMachinePage() {
                         <dl className="space-y-3">
                           <div className="flex justify-between items-center">
                             <dt className="text-slate-500">Adresse IP</dt>
-                            <dd className="font-medium">{vm.ip_address || "-"}</dd>
+                            <dd className="font-medium">
+                              {vm.ip_address || "-"}
+                            </dd>
                           </div>
                           <div className="flex justify-between items-center">
                             <dt className="text-slate-500">Port SSH</dt>
-                            <dd className="font-medium">{vm.ssh_port || "-"}</dd>
+                            <dd className="font-medium">
+                              {vm.ssh_port || "-"}
+                            </dd>
                           </div>
                         </dl>
                       </div>
@@ -572,10 +608,7 @@ export default function VirtualMachinePage() {
 
               {/* SSH Connection Card */}
               {vm.status === "running" && vm.ip_address && vm.ssh_port && (
-                <motion.div
-                  variants={cardHover}
-                  whileHover="hover"
-                >
+                <motion.div variants={cardHover} whileHover="hover">
                   <Card className="bg-white dark:bg-slate-800 shadow-lg">
                     <CardHeader className="border-b border-slate-200 dark:border-slate-700">
                       <CardTitle className="flex items-center gap-2">

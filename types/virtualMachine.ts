@@ -1,5 +1,5 @@
 // types/virtualMachine.ts
-export type VMStatus = 'running' | 'stopped' | 'paused';
+export type VMStatus = "running" | "stopped" | "paused";
 
 export interface VMUser {
   id: number;
@@ -70,11 +70,17 @@ export interface VirtualMachine {
   systemImage: SystemImage;
   vmModels: VMmodels;
   metrics: VMMetrics;
+  cpu: number;
+  password: string;
+  ram: string;
+  ssh_key: string;
+  storage: string;
+  state: String;
 }
 
 export interface VMLog {
   timestamp: string;
-  level: 'info' | 'warning' | 'error';
+  level: "info" | "warning" | "error";
   message: string;
 }
 
