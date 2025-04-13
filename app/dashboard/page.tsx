@@ -44,8 +44,11 @@ export default function DashboardPage() {
   console.log(vmModels);
   useEffect(() => {
     // Récupérer les machines virtuelles
+    console.log("Le user id est ", user?.user);
+
     if (user) {
       fetchVirtualMachines(Number.parseInt(user?.user.id, 10));
+      console.log("fetching VMs for user", virtualMachines);
     }
   }, [fetchVirtualMachines, user]);
 
@@ -56,7 +59,7 @@ export default function DashboardPage() {
         (acc, vm) => {
           return {
             vcpu: acc.vcpu + (vm.cpu || 0),
-            memory: acc.memory + (vm.ram || 0),
+            memory: acc.memory + (Number(vm.ram) || 0),
           };
         },
         { vcpu: 0, memory: 0 }

@@ -27,12 +27,12 @@ export const useVirtualMachines = () => {
   const vmClient = getServiceClient("VM_SERVICE");
   const systemImagesClient = getServiceClient("SYSTEM_IMAGES_SERVICE");
   //fonction asynchrone pour recuperer toutes les vms
-  const fetchVirtualMachines = useCallback(async () => {
+  const fetchVirtualMachines = useCallback(async (id: number) => {
     try {
       setIsLoading(true);
       setError(null);
       const response = await vmClient.get(
-        API_ENDPOINTS.VIRTUAL_MACHINES.endpoints.LIST
+        API_ENDPOINTS.VIRTUAL_MACHINES.endpoints.LIST(id)
       );
       setVirtualMachines(response.data);
     } catch (err) {

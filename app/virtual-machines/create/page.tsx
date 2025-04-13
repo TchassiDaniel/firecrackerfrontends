@@ -191,6 +191,7 @@ export default function CreateVirtualMachinePage() {
       });
 
       // Envoyer la requête sans attendre la réponse
+      values.owner_id = Number(user?.user.id);
       createVirtualMachine(values)
         .then((result) => {
           console.log("Résultat de la création (en arrière-plan):", result);
@@ -203,19 +204,18 @@ export default function CreateVirtualMachinePage() {
           });
         })
         .catch((error) => {
-          console.error("Erreur lors de la création (en arrière-plan):", error);
-
-          // Notification d'erreur (même si l'utilisateur a déjà été redirigé)
-          toast({
-            title: "Problème de création",
-            description:
-              "Un problème est survenu lors de la création. Vérifiez l'état de votre machine dans quelques minutes.",
-            variant: "destructive",
-          });
+          // console.error("Erreur lors de la création (en arrière-plan):", error);
+          // // Notification d'erreur (même si l'utilisateur a déjà été redirigé)
+          // toast({
+          //   title: "Problème de création",
+          //   description:
+          //     "Un problème est survenu lors de la création. Vérifiez l'état de votre machine dans quelques minutes.",
+          //   variant: "destructive",
+          // });
         });
 
       // Attendre un court délai pour que l'utilisateur voie le toast
-      await new Promise((resolve) => setTimeout(resolve, 1500));
+      await new Promise((resolve) => setTimeout(resolve, 15000));
 
       // Rediriger l'utilisateur sans attendre la fin de la création
       router.push("/virtual-machines");

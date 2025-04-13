@@ -3,12 +3,12 @@
 import { id } from "date-fns/locale";
 
 export const SERVICES = {
-  AUTH_SERVICE: 'auth-service',
-  USER_SERVICE: 'user-service',
-  VM_SERVICE: 'vm-service',
-  NOTIFICATION_SERVICE: 'notification-service',
-  SYSTEM_IMAGES_SERVICE: 'system-images-service',
-  ADMIN_SERVICE: 'admin-service'
+  AUTH_SERVICE: "auth-service",
+  USER_SERVICE: "user-service",
+  VM_SERVICE: "vm-service",
+  NOTIFICATION_SERVICE: "notification-service",
+  SYSTEM_IMAGES_SERVICE: "system-images-service",
+  ADMIN_SERVICE: "admin-service",
 } as const;
 
 // Type pour les services
@@ -37,7 +37,7 @@ export const API_ENDPOINTS = {
   VIRTUAL_MACHINES: {
     service: SERVICES.VM_SERVICE,
     endpoints: {
-      LIST: "/vms",
+      LIST: (id: number) => `/users/${id}/vms`,
       LIST_BY_USER: (userId: number) => `/users/${userId}/vms`,
       CREATE: "/vms",
       GET: (id: number) => `/vms/${id.toString()}`,
@@ -79,15 +79,15 @@ export const API_ENDPOINTS = {
       DELETE: (id: number) => `/vm_models/${id.toString()}`,
     },
   },
-  
+
   ADMIN: {
     service: SERVICES.ADMIN_SERVICE,
     endpoints: {
-      STATS: '/admin/stats',
-      USAGE_STATS: '/admin/usage-stats',
-      RECENT_USERS: '/admin/recent-users',
-      RECENT_VMS: '/admin/recent-vms',
-      DASHBOARD: '/admin/dashboard'
-    }
-  }
+      STATS: "/admin/stats",
+      USAGE_STATS: "/admin/usage-stats",
+      RECENT_USERS: "/admin/recent-users",
+      RECENT_VMS: "/admin/recent-vms",
+      DASHBOARD: "/admin/dashboard",
+    },
+  },
 } as const;
